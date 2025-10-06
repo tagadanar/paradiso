@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Cinema Paradiso 🍕🍹☀️</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        header {
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            margin-bottom: 30px;
+        }
+        header .container {
+            padding: 0 20px;
+        }
+        h1 {
+            padding: 15px 0 10px 0;
+            font-size: 24px;
+            margin: 0;
+        }
+        .profile-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            padding-bottom: 10px;
+        }
+        .profile-label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .profile-item {
+            position: relative;
+            display: inline-block;
+        }
+        .profile-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            background: #e0e0e0;
+            transition: all 0.2s;
+        }
+        .profile-btn:hover { background: #d0d0d0; }
+        .profile-btn.active { background: #2196F3; color: white; }
+        .profile-delete {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #f44336;
+            color: white;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 14px;
+            line-height: 24px;
+            padding: 0;
+        }
+        .profile-item:hover .profile-delete {
+            opacity: 1;
+        }
+        .profile-delete:hover {
+            background: #d32f2f;
+        }
+        .profile-selected {
+            color: #4CAF50;
+            font-weight: 600;
+            margin-left: 10px;
+            font-size: 14px;
+            padding: 5px 0;
+        }
+
+        /* Voter Tooltip */
+        .voter-tooltip {
+            position: fixed;
+            background: rgba(0,0,0,0.95);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10000;
+            min-width: 150px;
+            max-width: 300px;
+            display: none;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .voter-tooltip.show { display: block; }
+        .voter-section { margin-bottom: 8px; }
+        .voter-section:last-child { margin-bottom: 0; }
+        .voter-section strong { display: block; margin-bottom: 4px; color: #fff; }
+
+        /* Forms */
+        .form-inline { display: flex; gap: 10px; }
+        input[type="text"] {
+            padding: 6px 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        button {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        .btn-create { background: #4CAF50; color: white; }
+        .btn-create:hover { background: #45a049; }
+        .btn-search { background: #2196F3; color: white; }
+        .btn-search:hover { background: #0b7dda; }
+        .btn-close-search { background: #f44336; color: white; }
+        .btn-close-search:hover { background: #d32f2f; }
+        .btn-add { background: #4CAF50; color: white; }
+        .btn-filter {
+            background: #FF6B35;
+            color: white;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .btn-filter:hover { background: #FF5722; }
+        .btn-filter.active {
+            background: #4A148C;
+            border-color: #FF6B35;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .card h2 { margin-bottom: 15px; }
+
+        /* Search Results */
+        .search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 0;
+        }
+        .search-results:not(:empty) {
+            margin-top: 12px;
+        }
+        .movie-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .movie-card img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .movie-card h3 { font-size: 14px; margin-bottom: 5px; }
+        .movie-card p { font-size: 12px; color: #666; margin-bottom: 10px; }
+
+        /* Film List */
+        .film-item {
+            position: relative;
+            display: flex;
+            gap: 24px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .film-delete {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f44336;
+            color: white;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 18px;
+            line-height: 32px;
+            padding: 0;
+            z-index: 5;
+        }
+        .film-item:hover .film-delete {
+            opacity: 1;
+        }
+        .film-delete:hover {
+            background: #d32f2f;
+        }
+        .film-poster {
+            width: 150px;
+            height: 225px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        .film-details { flex: 1; }
+        .film-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .film-year { color: #666; margin-bottom: 16px; }
+        .vote-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .vote-btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            position: relative;
+        }
+        .vote-btn-up { background: #e0e0e0; color: #333; }
+        .vote-btn-up.active { background: #4CAF50; color: white; }
+        .vote-btn-neutral { background: #e0e0e0; color: #333; }
+        .vote-btn-neutral.active { background: #9E9E9E; color: white; }
+        .vote-btn-down { background: #e0e0e0; color: #333; }
+        .vote-btn-down.active { background: #f44336; color: white; }
+        .vote-score {
+            padding: 10px 20px;
+            background: #E3F2FD;
+            color: #1976D2;
+            border-radius: 8px;
+            font-weight: 700;
+        }
+        .info-btn {
+            background: #2196F3;
+            color: white;
+            margin-top: 8px;
+            margin-right: 8px;
+        }
+        .info-btn:hover { background: #0b7dda; }
+        .plot-btn {
+            background: #FFC107;
+            color: #000;
+            margin-top: 8px;
+        }
+        .plot-btn:hover { background: #FFB300; }
+        .info-content, .plot-content {
+            margin-top: 12px;
+            padding: 16px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            display: none;
+        }
+        .info-content.show, .plot-content.show { display: block; }
+        .trailer-btn {
+            background: #f44336;
+            color: white;
+            margin-top: 8px;
+        }
+        .trailer-btn:hover { background: #d32f2f; }
+        .trailer-link {
+            display: none;
+            margin-top: 8px;
+            color: #2196F3;
+        }
+        .trailer-link.show { display: block; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎬 Cinema Paradiso 🍕🍹☀️</h1>
+
+            <!-- Profile Selection -->
+            <div class="profile-bar">
+                <span class="profile-label">Select Identity:</span>
+                <div id="profiles"></div>
+                <div class="form-inline">
+                    <input type="text" id="newProfileName" placeholder="New profile name">
+                    <button class="btn-create" onclick="createProfile()">Create</button>
+                </div>
+            </div>
+            <div id="selectedProfile" class="profile-selected"></div>
+
+            <!-- Add Film -->
+            <div style="padding: 6px 0 4px 0; border-top: 1px solid #e0e0e0; margin-top: 4px;">
+                <div class="form-inline" style="align-items: center;">
+                    <span style="font-weight: 600; font-size: 14px; margin-right: 10px;">Add Film:</span>
+                    <input type="text" id="searchQuery" placeholder="Search for a film..." style="flex: 1; max-width: 400px;">
+                    <button class="btn-search" onclick="searchFilms()">Search</button>
+                    <button id="closeSearchBtn" class="btn-close-search" onclick="closeSearch()" style="display: none;">✕</button>
+                </div>
+                <div id="searchResults" class="search-results"></div>
+            </div>
+
+            <!-- Filters -->
+            <div style="padding: 8px 0 12px 0; border-top: 1px solid #e0e0e0; margin-top: 8px;">
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                    <span style="font-weight: 600; font-size: 14px;">Filters:</span>
+                    <button id="spookyBtn" class="btn-filter" onclick="toggleSpookyFilter()">
+                        🎃 Spooky
+                    </button>
+                    <button id="unvotedBtn" class="btn-filter" onclick="setVoteFilter('unvoted')">
+                        ⚪ Unvoted
+                    </button>
+                    <button id="upvotedBtn" class="btn-filter" onclick="setVoteFilter('upvoted')">
+                        👍 My Upvotes
+                    </button>
+                    <button id="neutralBtn" class="btn-filter" onclick="setVoteFilter('neutral')">
+                        ➖ My Neutral
+                    </button>
+                    <button id="downvotedBtn" class="btn-filter" onclick="setVoteFilter('downvoted')">
+                        👎 My Downvotes
+                    </button>
+                </div>
+                <!-- Search Films -->
+                <div style="margin-top: 6px;">
+                    <input type="text" id="filmSearchInput" placeholder="🔍 Search films by title, director, actor, genre..."
+                           style="width: 100%; max-width: 600px;"
+                           oninput="filterFilms()">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Films List -->
+        <div>
+            <h2 style="margin-bottom: 16px;">All Films</h2>
+            <div id="filmsList"></div>
+        </div>
+    </div>
+
+    <script>
+        let profiles = [];
+        let selectedProfile = null;
+        let films = [];
+        let userVotes = {};
+        let spookyFilter = false;
+        let voteFilter = null; // null, 'unvoted', 'upvoted', 'neutral', 'downvoted'
+        let filmSearchQuery = '';
+
+        // Load profiles and films on page load
+        async function init() {
+            await loadProfiles();
+            await loadFilms();
+            const savedProfileId = localStorage.getItem('selectedProfileId');
+            if (savedProfileId && profiles.length > 0) {
+                const profile = profiles.find(p => p.id === parseInt(savedProfileId));
+                if (profile) selectProfile(profile);
+            }
+        }
+
+        async function loadProfiles() {
+            try {
+                const res = await fetch('/api/profiles');
+                profiles = await res.json();
+                renderProfiles();
+            } catch (error) {
+                console.error('Failed to load profiles:', error);
+            }
+        }
+
+        function renderProfiles() {
+            const container = document.getElementById('profiles');
+            container.innerHTML = profiles.map(p => `
+                <div class="profile-item">
+                    <button class="profile-btn ${selectedProfile?.id === p.id ? 'active' : ''}"
+                            onclick='selectProfile(${JSON.stringify(p)})'>
+                        ${p.name}
+                    </button>
+                    <button class="profile-delete" onclick="deleteProfile(${p.id}, '${p.name.replace(/'/g, "\\'")}')">×</button>
+                </div>
+            `).join('');
+        }
+
+        async function selectProfile(profile) {
+            selectedProfile = profile;
+            localStorage.setItem('selectedProfileId', profile.id);
+            document.getElementById('selectedProfile').innerHTML = `✓ Voting as: ${profile.name}`;
+            renderProfiles();
+            await loadUserVotes();
+            renderFilms();
+        }
+
+        async function createProfile() {
+            const name = document.getElementById('newProfileName').value.trim();
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/profiles', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+
+                if (res.ok) {
+                    const profile = await res.json();
+                    profiles.push(profile);
+                    selectProfile(profile);
+                    document.getElementById('newProfileName').value = '';
+                } else {
+                    const error = await res.json();
+                    alert(error.detail || 'Failed to create profile');
+                }
+            } catch (error) {
+                console.error('Failed to create profile:', error);
+                alert('Failed to create profile. Please try again.');
+            }
+        }
+
+        async function deleteProfile(profileId, profileName) {
+            if (!confirm(`Are you sure you want to delete profile "${profileName}"? This will also delete all votes by this profile.`)) {
+                return;
+            }
+
+            const res = await fetch(`/api/profiles/${profileId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                profiles = profiles.filter(p => p.id !== profileId);
+
+                // If deleting currently selected profile, clear selection
+                if (selectedProfile?.id === profileId) {
+                    selectedProfile = null;
+                    userVotes = {};
+                    localStorage.removeItem('selectedProfileId');
+                    document.getElementById('selectedProfile').innerHTML = '';
+                }
+
+                renderProfiles();
+                await loadFilms();
+            } else {
+                const error = await res.json();
+                alert(error.detail || 'Failed to delete profile');
+            }
+        }
+
+        async function deleteFilm(filmId, filmTitle) {
+            if (!confirm(`Are you sure you want to delete "${filmTitle}"? This will also delete all votes for this film.`)) {
+                return;
+            }
+
+            const res = await fetch(`/api/films/${filmId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                // Reload user votes and films to update vote counts
+                if (selectedProfile) {
+                    await loadUserVotes();
+                }
+                await loadFilms();
+            } else {
+                const error = await res.json();
+                alert(error.detail || 'Failed to delete film');
+            }
+        }
+
+        async function searchFilms() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) return;
+
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                renderSearchResults(data.results || []);
+
+                if (data.error) {
+                    alert(`Search error: ${data.error}`);
+                }
+            } catch (error) {
+                console.error('Failed to search films:', error);
+                alert('Failed to search films. Please try again.');
+            }
+        }
+
+        function renderSearchResults(results) {
+            const container = document.getElementById('searchResults');
+            const closeBtn = document.getElementById('closeSearchBtn');
+
+            container.innerHTML = results.map(movie => `
+                <div class="movie-card">
+                    ${movie.Poster !== 'N/A' ? `<img src="${movie.Poster}" alt="${movie.Title}">` : ''}
+                    <h3>${movie.Title}</h3>
+                    <p>${movie.Year}</p>
+                    <button class="btn-add" onclick='addFilm("${movie.imdbID}")'>Add Film</button>
+                </div>
+            `).join('');
+
+            // Show close button if there are results
+            if (results.length > 0) {
+                closeBtn.style.display = 'block';
+            } else {
+                closeBtn.style.display = 'none';
+            }
+        }
+
+        function closeSearch() {
+            document.getElementById('searchResults').innerHTML = '';
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('closeSearchBtn').style.display = 'none';
+        }
+
+        async function addFilm(imdbId) {
+            try {
+                const res = await fetch('/api/films', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ imdbId })
+                });
+
+                if (res.ok) {
+                    closeSearch();
+                    await loadFilms();
+                } else {
+                    const error = await res.json();
+                    alert(error.detail || 'Failed to add film');
+                }
+            } catch (error) {
+                console.error('Failed to add film:', error);
+                alert('Failed to add film. Please try again.');
+            }
+        }
+
+        async function loadFilms() {
+            try {
+                const res = await fetch('/api/films');
+                films = await res.json();
+                renderFilms();
+            } catch (error) {
+                console.error('Failed to load films:', error);
+            }
+        }
+
+        async function loadUserVotes() {
+            if (!selectedProfile) {
+                userVotes = {};
+                return;
+            }
+            try {
+                const res = await fetch(`/api/vote?profileId=${selectedProfile.id}`);
+                userVotes = await res.json();
+            } catch (error) {
+                console.error('Failed to load user votes:', error);
+                userVotes = {};
+            }
+        }
+
+        async function vote(filmId, voteValue) {
+            if (!selectedProfile) {
+                alert('Please select a profile first!');
+                return;
+            }
+
+            const currentVote = userVotes[filmId];
+            const newVote = currentVote === voteValue ? 0 : voteValue;
+
+            try {
+                const res = await fetch('/api/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filmId, profileId: selectedProfile.id, vote: newVote })
+                });
+
+                if (res.ok) {
+                    // Load user votes first, then reload films
+                    await loadUserVotes();
+                    await loadFilms();
+                } else {
+                    const error = await res.json();
+                    alert(error.detail || 'Failed to vote');
+                }
+            } catch (error) {
+                console.error('Failed to vote:', error);
+                alert('Failed to vote. Please try again.');
+            }
+        }
+
+        let voterTooltip = null;
+        let tooltipTimeout = null;
+
+        async function showVoterTooltip(event, filmId) {
+            clearTimeout(tooltipTimeout);
+
+            if (!voterTooltip) {
+                voterTooltip = document.createElement('div');
+                voterTooltip.className = 'voter-tooltip';
+                document.body.appendChild(voterTooltip);
+            }
+
+            // Position and show tooltip immediately
+            const rect = event.currentTarget.getBoundingClientRect();
+            voterTooltip.style.left = rect.left + 'px';
+            voterTooltip.style.top = (rect.bottom + 8) + 'px';
+            voterTooltip.innerHTML = '<div>Loading...</div>';
+            voterTooltip.classList.add('show');
+
+            try {
+                // Fetch and update content
+                const res = await fetch(`/api/films/${filmId}/voters`);
+                const voters = await res.json();
+
+                let html = '';
+                if (voters.upvoters && voters.upvoters.length > 0) {
+                    html += `<div class="voter-section"><strong>👍 Upvoted by:</strong> ${voters.upvoters.join(', ')}</div>`;
+                }
+                if (voters.neutralvoters && voters.neutralvoters.length > 0) {
+                    html += `<div class="voter-section"><strong>➖ Neutral:</strong> ${voters.neutralvoters.join(', ')}</div>`;
+                }
+                if (voters.downvoters && voters.downvoters.length > 0) {
+                    html += `<div class="voter-section"><strong>👎 Downvoted by:</strong> ${voters.downvoters.join(', ')}</div>`;
+                }
+                if ((!voters.upvoters || voters.upvoters.length === 0) &&
+                    (!voters.downvoters || voters.downvoters.length === 0) &&
+                    (!voters.neutralvoters || voters.neutralvoters.length === 0)) {
+                    html = '<div>No votes yet</div>';
+                }
+
+                // Only update if tooltip is still visible
+                if (voterTooltip.classList.contains('show')) {
+                    voterTooltip.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Failed to load voters:', error);
+                if (voterTooltip.classList.contains('show')) {
+                    voterTooltip.innerHTML = '<div>Failed to load voters</div>';
+                }
+            }
+        }
+
+        function hideVoterTooltip() {
+            tooltipTimeout = setTimeout(() => {
+                if (voterTooltip) {
+                    voterTooltip.classList.remove('show');
+                }
+            }, 150);
+        }
+
+        function toggleInfo(filmId) {
+            const elem = document.getElementById(`info-${filmId}`);
+            elem.classList.toggle('show');
+        }
+
+        function togglePlot(filmId) {
+            const elem = document.getElementById(`plot-${filmId}`);
+            elem.classList.toggle('show');
+        }
+
+        function toggleTrailer(filmId) {
+            const elem = document.getElementById(`trailer-${filmId}`);
+            elem.classList.toggle('show');
+        }
+
+        function toggleSpookyFilter() {
+            spookyFilter = !spookyFilter;
+            console.log('Spooky filter toggled:', spookyFilter);
+            const btn = document.getElementById('spookyBtn');
+            if (spookyFilter) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+            renderFilms();
+        }
+
+        function setVoteFilter(filter) {
+            // Toggle off if clicking the same filter
+            if (voteFilter === filter) {
+                voteFilter = null;
+            } else {
+                voteFilter = filter;
+            }
+
+            // Update button active states
+            ['unvotedBtn', 'upvotedBtn', 'neutralBtn', 'downvotedBtn'].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.remove('active');
+            });
+
+            if (voteFilter) {
+                const btnId = voteFilter + 'Btn';
+                const btn = document.getElementById(btnId);
+                if (btn) btn.classList.add('active');
+            }
+
+            renderFilms();
+        }
+
+        function filterFilms() {
+            const input = document.getElementById('filmSearchInput');
+            filmSearchQuery = input.value.toLowerCase().trim();
+            renderFilms();
+        }
+
+        function renderFilms() {
+            const container = document.getElementById('filmsList');
+
+            // Apply filters
+            let displayFilms = films;
+
+            // Spooky filter
+            if (spookyFilter) {
+                displayFilms = displayFilms.filter(film => {
+                    if (!film.genre) return false;
+                    const genre = film.genre.toLowerCase();
+                    return genre.includes('horror') ||
+                           genre.includes('thriller') ||
+                           genre.includes('mystery') ||
+                           genre.includes('suspense');
+                });
+            }
+
+            // Vote filter
+            if (voteFilter && selectedProfile) {
+                displayFilms = displayFilms.filter(film => {
+                    const userVote = userVotes[film.id];
+                    if (voteFilter === 'unvoted') {
+                        return userVote === undefined;
+                    } else if (voteFilter === 'upvoted') {
+                        return userVote === 1;
+                    } else if (voteFilter === 'neutral') {
+                        return userVote === 2;
+                    } else if (voteFilter === 'downvoted') {
+                        return userVote === -1;
+                    }
+                    return true;
+                });
+            }
+
+            // Text search filter
+            if (filmSearchQuery) {
+                displayFilms = displayFilms.filter(film => {
+                    const searchIn = [
+                        film.title || '',
+                        film.director || '',
+                        film.actors || '',
+                        film.genre || '',
+                        film.year || '',
+                        film.plot || ''
+                    ].join(' ').toLowerCase();
+                    return searchIn.includes(filmSearchQuery);
+                });
+            }
+
+            if (displayFilms.length === 0) {
+                let message = 'No films yet. Add one above!';
+                if (filmSearchQuery) message = `No films found matching "${filmSearchQuery}"`;
+                if (spookyFilter) message = 'No spooky films found!';
+                if (voteFilter) message = `No ${voteFilter} films found!`;
+                container.innerHTML = `<p>${message}</p>`;
+                return;
+            }
+
+            container.innerHTML = displayFilms.map(film => `
+                <div class="film-item">
+                    <button class="film-delete" onclick="deleteFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
+                    ${film.poster_url ? `<img class="film-poster" src="${film.poster_url}" alt="${film.title}">` : ''}
+                    <div class="film-details">
+                        <div class="film-title">${film.title}</div>
+                        <div class="film-year">${film.year}</div>
+
+                        <div class="vote-buttons">
+                            <button class="vote-btn vote-btn-up ${userVotes[film.id] === 1 ? 'active' : ''}"
+                                    onclick="vote(${film.id}, 1)"
+                                    onmouseenter="showVoterTooltip(event, ${film.id})"
+                                    onmouseleave="hideVoterTooltip()">
+                                👍 Upvote (${film.upvotes})
+                            </button>
+                            <button class="vote-btn vote-btn-neutral ${userVotes[film.id] === 2 ? 'active' : ''}"
+                                    onclick="vote(${film.id}, 2)"
+                                    onmouseenter="showVoterTooltip(event, ${film.id})"
+                                    onmouseleave="hideVoterTooltip()">
+                                ➖ Neutral (${film.neutral_votes || 0})
+                            </button>
+                            <button class="vote-btn vote-btn-down ${userVotes[film.id] === -1 ? 'active' : ''}"
+                                    onclick="vote(${film.id}, -1)"
+                                    onmouseenter="showVoterTooltip(event, ${film.id})"
+                                    onmouseleave="hideVoterTooltip()">
+                                👎 Downvote (${film.downvotes})
+                            </button>
+                            <div class="vote-score">
+                                Score: ${film.total_score > 0 ? '+' : ''}${film.total_score}
+                            </div>
+                        </div>
+
+                        <button class="info-btn" onclick="toggleInfo(${film.id})">
+                            ℹ️ Info
+                        </button>
+                        <button class="plot-btn" onclick="togglePlot(${film.id})">
+                            📖 Plot (Spoilers)
+                        </button>
+                        <button class="trailer-btn" onclick="toggleTrailer(${film.id})">
+                            🎬 Trailer
+                        </button>
+
+                        <div id="info-${film.id}" class="info-content">
+                            <p><strong>Genre:</strong> ${film.genre}</p>
+                            <p><strong>Director:</strong> ${film.director}</p>
+                            <p><strong>Actors:</strong> ${film.actors}</p>
+                        </div>
+
+                        <div id="plot-${film.id}" class="plot-content">
+                            <p><strong>Plot:</strong> ${film.plot}</p>
+                        </div>
+                        <a id="trailer-${film.id}" class="trailer-link" href="${film.trailer_url}" target="_blank">
+                            Watch Trailer on YouTube →
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Initialize on page load
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+version: '3.3'
+
+services:
+  paradiso:
+    build: .
+    container_name: paradiso
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./films.db:/app/films.db
+    environment:
+      - OMDB_API_KEY=b85be4e8
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/profiles"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
