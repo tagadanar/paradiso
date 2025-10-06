@@ -722,15 +722,12 @@
             // Apply filters
             let displayFilms = films;
 
-            // Spooky filter
+            // Spooky filter (horror only)
             if (spookyFilter) {
                 displayFilms = displayFilms.filter(film => {
                     if (!film.genre) return false;
                     const genre = film.genre.toLowerCase();
-                    return genre.includes('horror') ||
-                           genre.includes('thriller') ||
-                           genre.includes('mystery') ||
-                           genre.includes('suspense');
+                    return genre.includes('horror');
                 });
             }
 
