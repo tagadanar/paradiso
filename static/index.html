@@ -375,7 +375,7 @@
 
         async function loadProfiles() {
             try {
-                const res = await fetch('/api/profiles');
+                const res = await fetch('./api/profiles');
                 profiles = await res.json();
                 renderProfiles();
             } catch (error) {
@@ -410,7 +410,7 @@
             if (!name) return;
 
             try {
-                const res = await fetch('/api/profiles', {
+                const res = await fetch('./api/profiles', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name })
@@ -436,7 +436,7 @@
                 return;
             }
 
-            const res = await fetch(`/api/profiles/${profileId}`, {
+            const res = await fetch(`./api/profiles/${profileId}`, {
                 method: 'DELETE'
             });
 
@@ -464,7 +464,7 @@
                 return;
             }
 
-            const res = await fetch(`/api/films/${filmId}`, {
+            const res = await fetch(`./api/films/${filmId}`, {
                 method: 'DELETE'
             });
 
@@ -485,7 +485,7 @@
             if (!query) return;
 
             try {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`./api/search?q=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 renderSearchResults(data.results || []);
 
@@ -527,7 +527,7 @@
 
         async function addFilm(imdbId) {
             try {
-                const res = await fetch('/api/films', {
+                const res = await fetch('./api/films', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ imdbId })
@@ -548,7 +548,7 @@
 
         async function loadFilms() {
             try {
-                const res = await fetch('/api/films');
+                const res = await fetch('./api/films');
                 films = await res.json();
                 renderFilms();
             } catch (error) {
@@ -562,7 +562,7 @@
                 return;
             }
             try {
-                const res = await fetch(`/api/vote?profileId=${selectedProfile.id}`);
+                const res = await fetch(`./api/vote?profileId=${selectedProfile.id}`);
                 userVotes = await res.json();
             } catch (error) {
                 console.error('Failed to load user votes:', error);
@@ -580,7 +580,7 @@
             const newVote = currentVote === voteValue ? 0 : voteValue;
 
             try {
-                const res = await fetch('/api/vote', {
+                const res = await fetch('./api/vote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filmId, profileId: selectedProfile.id, vote: newVote })
@@ -621,7 +621,7 @@
 
             try {
                 // Fetch and update content
-                const res = await fetch(`/api/films/${filmId}/voters`);
+                const res = await fetch(`./api/films/${filmId}/voters`);
                 const voters = await res.json();
 
                 let html = '';
