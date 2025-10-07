@@ -1,5 +1,9 @@
 version: '3.3'
 
+# NOTE: This docker-compose.yml is for LOCAL development only.
+# On the production server, we use `docker run` with a persistent database mount.
+# See DEPLOYMENT_INTERNAL.md for production deployment instructions.
+
 services:
   paradiso:
     build: .
@@ -8,7 +12,9 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     volumes:
+      # For local development - mounts local films.db
       - ./films.db:/app/films.db
+      # For production, use: /root/paradiso-data/films.db:/app/films.db
     environment:
       - OMDB_API_KEY=b85be4e8
     healthcheck:

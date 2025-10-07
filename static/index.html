@@ -3,24 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎬 Cinema Paradiso 🍕🍹☀️</title>
+    <title>🎬 Cinema Paradiso 🛋️🍕🍹🦆</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* Theme Variables */
+        :root {
+            --bg-primary: #f5f5f5;
+            --bg-secondary: white;
+            --bg-tertiary: #e0e0e0;
+            --bg-quaternary: #f5f5f5;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --border-color: #ddd;
+            --border-color-light: #e0e0e0;
+            --shadow-sm: rgba(0,0,0,0.1);
+            --shadow-md: rgba(0,0,0,0.3);
+            --tooltip-bg: rgba(0,0,0,0.95);
+            --tooltip-border: rgba(255,255,255,0.1);
+            --info-bg: #f5f5f5;
+            --score-bg: #E3F2FD;
+            --score-text: #1976D2;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #404040;
+            --bg-quaternary: #333333;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+            --border-color-light: #333333;
+            --shadow-sm: rgba(0,0,0,0.3);
+            --shadow-md: rgba(0,0,0,0.5);
+            --tooltip-bg: rgba(60,60,60,0.95);
+            --tooltip-border: rgba(255,255,255,0.05);
+            --info-bg: #333333;
+            --score-bg: #1a3a52;
+            --score-text: #64B5F6;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            color: #333;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
         .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
 
         /* Header */
         header {
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: var(--bg-secondary);
+            box-shadow: 0 2px 4px var(--shadow-sm);
             position: sticky;
             top: 0;
             z-index: 10;
             margin-bottom: 30px;
+            transition: background-color 0.3s ease;
         }
         header .container {
             padding: 0 20px;
@@ -52,10 +92,11 @@
             cursor: pointer;
             font-weight: 600;
             font-size: 13px;
-            background: #e0e0e0;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
             transition: all 0.2s;
         }
-        .profile-btn:hover { background: #d0d0d0; }
+        .profile-btn:hover { background: var(--bg-quaternary); filter: brightness(0.95); }
         .profile-btn.active { background: #2196F3; color: white; }
         .profile-delete {
             position: absolute;
@@ -91,7 +132,7 @@
         /* Voter Tooltip */
         .voter-tooltip {
             position: fixed;
-            background: rgba(0,0,0,0.95);
+            background: var(--tooltip-bg);
             color: white;
             padding: 12px 16px;
             border-radius: 8px;
@@ -101,8 +142,8 @@
             max-width: 300px;
             display: none;
             pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 12px var(--shadow-md);
+            border: 1px solid var(--tooltip-border);
         }
         .voter-tooltip.show { display: block; }
         .voter-section { margin-bottom: 8px; }
@@ -113,9 +154,12 @@
         .form-inline { display: flex; gap: 10px; }
         input[type="text"] {
             padding: 6px 10px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--border-color);
             border-radius: 6px;
             font-size: 13px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
         }
         button {
             padding: 6px 12px;
@@ -150,11 +194,12 @@
 
         /* Cards */
         .card {
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 12px;
             padding: 24px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow-sm);
+            transition: background-color 0.3s ease;
         }
         .card h2 { margin-bottom: 15px; }
 
@@ -169,10 +214,12 @@
             margin-top: 12px;
         }
         .movie-card {
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 12px;
             text-align: center;
+            background: var(--bg-secondary);
+            transition: all 0.3s ease;
         }
         .movie-card img {
             width: 100%;
@@ -181,8 +228,16 @@
             border-radius: 4px;
             margin-bottom: 10px;
         }
+        .movie-card img.error {
+            display: none;
+        }
+        .movie-card .poster-placeholder {
+            width: 100%;
+            height: 250px;
+            margin-bottom: 10px;
+        }
         .movie-card h3 { font-size: 14px; margin-bottom: 5px; }
-        .movie-card p { font-size: 12px; color: #666; margin-bottom: 10px; }
+        .movie-card p { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
 
         /* Film List */
         .film-item {
@@ -190,10 +245,11 @@
             display: flex;
             gap: 24px;
             padding: 20px;
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 12px;
             margin-bottom: 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow-sm);
+            transition: background-color 0.3s ease;
         }
         .film-delete {
             position: absolute;
@@ -225,9 +281,24 @@
             object-fit: cover;
             border-radius: 8px;
         }
+        .film-poster.error {
+            display: none;
+        }
+        .poster-placeholder {
+            width: 150px;
+            height: 225px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 48px;
+            opacity: 0.6;
+        }
         .film-details { flex: 1; }
         .film-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-        .film-year { color: #666; margin-bottom: 16px; }
+        .film-year { color: var(--text-secondary); margin-bottom: 16px; }
         .vote-buttons {
             display: flex;
             gap: 12px;
@@ -240,16 +311,16 @@
             font-weight: 600;
             position: relative;
         }
-        .vote-btn-up { background: #e0e0e0; color: #333; }
+        .vote-btn-up { background: var(--bg-tertiary); color: var(--text-primary); }
         .vote-btn-up.active { background: #4CAF50; color: white; }
-        .vote-btn-neutral { background: #e0e0e0; color: #333; }
+        .vote-btn-neutral { background: var(--bg-tertiary); color: var(--text-primary); }
         .vote-btn-neutral.active { background: #9E9E9E; color: white; }
-        .vote-btn-down { background: #e0e0e0; color: #333; }
+        .vote-btn-down { background: var(--bg-tertiary); color: var(--text-primary); }
         .vote-btn-down.active { background: #f44336; color: white; }
         .vote-score {
             padding: 10px 20px;
-            background: #E3F2FD;
-            color: #1976D2;
+            background: var(--score-bg);
+            color: var(--score-text);
             border-radius: 8px;
             font-weight: 700;
         }
@@ -269,7 +340,7 @@
         .info-content, .plot-content {
             margin-top: 12px;
             padding: 16px;
-            background: #f5f5f5;
+            background: var(--info-bg);
             border-radius: 8px;
             display: none;
         }
@@ -286,12 +357,37 @@
             color: #2196F3;
         }
         .trailer-link.show { display: block; }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .theme-toggle:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
     </style>
 </head>
 <body>
     <header>
-        <div class="container">
-            <h1>🎬 Cinema Paradiso 🍕🍹☀️</h1>
+        <div class="container" style="position: relative;">
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                <span id="themeIcon">🌙</span>
+            </button>
+            <h1>🎬 Cinema Paradiso 🛋️🍕🍹🦆</h1>
 
             <!-- Profile Selection -->
             <div class="profile-bar">
@@ -354,6 +450,51 @@
     </div>
 
     <script>
+        // Theme Management
+        function initTheme() {
+            // Check localStorage first, then browser preference, default to dark
+            const savedTheme = localStorage.getItem('theme');
+            let theme;
+
+            if (savedTheme) {
+                theme = savedTheme;
+            } else {
+                // Check if browser has a preference
+                const hasBrowserPreference = window.matchMedia('(prefers-color-scheme: dark)').matches ||
+                                            window.matchMedia('(prefers-color-scheme: light)').matches;
+
+                if (hasBrowserPreference) {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                } else {
+                    // No browser preference, default to dark
+                    theme = 'dark';
+                }
+                localStorage.setItem('theme', theme);
+            }
+
+            applyTheme(theme);
+        }
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.getElementById('themeIcon').textContent = '☀️';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.getElementById('themeIcon').textContent = '🌙';
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        // Initialize theme immediately
+        initTheme();
+
         let profiles = [];
         let selectedProfile = null;
         let films = [];
@@ -361,6 +502,18 @@
         let spookyFilter = false;
         let voteFilter = null; // null, 'unvoted', 'upvoted', 'neutral', 'downvoted'
         let filmSearchQuery = '';
+
+        // Handle broken poster images
+        function handleImageError(img) {
+            img.classList.add('error');
+            // Add placeholder if not already present
+            if (!img.nextElementSibling || !img.nextElementSibling.classList.contains('poster-placeholder')) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'poster-placeholder';
+                placeholder.textContent = '🎬';
+                img.parentNode.insertBefore(placeholder, img.nextSibling);
+            }
+        }
 
         // Load profiles and films on page load
         async function init() {
@@ -375,7 +528,7 @@
 
         async function loadProfiles() {
             try {
-                const res = await fetch('./api/profiles');
+                const res = await fetch('/paradiso/api/profiles');
                 profiles = await res.json();
                 renderProfiles();
             } catch (error) {
@@ -410,7 +563,7 @@
             if (!name) return;
 
             try {
-                const res = await fetch('./api/profiles', {
+                const res = await fetch('/paradiso/api/profiles', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name })
@@ -436,7 +589,7 @@
                 return;
             }
 
-            const res = await fetch(`./api/profiles/${profileId}`, {
+            const res = await fetch(`/paradiso/api/profiles/${profileId}`, {
                 method: 'DELETE'
             });
 
@@ -464,7 +617,7 @@
                 return;
             }
 
-            const res = await fetch(`./api/films/${filmId}`, {
+            const res = await fetch(`/paradiso/api/films/${filmId}`, {
                 method: 'DELETE'
             });
 
@@ -485,7 +638,7 @@
             if (!query) return;
 
             try {
-                const res = await fetch(`./api/search?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`/paradiso/api/search?q=${encodeURIComponent(query)}`);
                 const data = await res.json();
                 renderSearchResults(data.results || []);
 
@@ -504,7 +657,7 @@
 
             container.innerHTML = results.map(movie => `
                 <div class="movie-card">
-                    ${movie.Poster !== 'N/A' ? `<img src="${movie.Poster}" alt="${movie.Title}">` : ''}
+                    ${movie.Poster !== 'N/A' ? `<img src="${movie.Poster}" alt="${movie.Title}" onerror="handleImageError(this)">` : '<div class="poster-placeholder">🎬</div>'}
                     <h3>${movie.Title}</h3>
                     <p>${movie.Year}</p>
                     <button class="btn-add" onclick='addFilm("${movie.imdbID}")'>Add Film</button>
@@ -527,7 +680,7 @@
 
         async function addFilm(imdbId) {
             try {
-                const res = await fetch('./api/films', {
+                const res = await fetch('/paradiso/api/films', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ imdbId })
@@ -548,7 +701,7 @@
 
         async function loadFilms() {
             try {
-                const res = await fetch('./api/films');
+                const res = await fetch('/paradiso/api/films');
                 films = await res.json();
                 renderFilms();
             } catch (error) {
@@ -562,7 +715,7 @@
                 return;
             }
             try {
-                const res = await fetch(`./api/vote?profileId=${selectedProfile.id}`);
+                const res = await fetch(`/paradiso/api/vote?profileId=${selectedProfile.id}`);
                 userVotes = await res.json();
             } catch (error) {
                 console.error('Failed to load user votes:', error);
@@ -580,7 +733,7 @@
             const newVote = currentVote === voteValue ? 0 : voteValue;
 
             try {
-                const res = await fetch('./api/vote', {
+                const res = await fetch('/paradiso/api/vote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ filmId, profileId: selectedProfile.id, vote: newVote })
@@ -621,7 +774,7 @@
 
             try {
                 // Fetch and update content
-                const res = await fetch(`./api/films/${filmId}/voters`);
+                const res = await fetch(`/paradiso/api/films/${filmId}/voters`);
                 const voters = await res.json();
 
                 let html = '';
@@ -775,7 +928,7 @@
             container.innerHTML = displayFilms.map(film => `
                 <div class="film-item">
                     <button class="film-delete" onclick="deleteFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
-                    ${film.poster_url ? `<img class="film-poster" src="${film.poster_url}" alt="${film.title}">` : ''}
+                    ${film.poster_url ? `<img class="film-poster" src="${film.poster_url}" alt="${film.title}" onerror="handleImageError(this)">` : '<div class="poster-placeholder">🎬</div>'}
                     <div class="film-details">
                         <div class="film-title">${film.title}</div>
                         <div class="film-year">${film.year}</div>
