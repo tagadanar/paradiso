@@ -452,7 +452,7 @@
             font-weight: 600;
             min-width: 100px;
         }
-        .archive-metadata input[type="date"],
+        .archive-metadata input[type="text"],
         .archive-metadata textarea {
             flex: 1;
             padding: 6px 10px;
@@ -1226,6 +1226,24 @@
             }
         });
 
+        // Date conversion functions (DD/MM/YYYY <-> YYYY-MM-DD)
+        function formatDateForDisplay(isoDate) {
+            if (!isoDate) return '';
+            const [year, month, day] = isoDate.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        function formatDateForStorage(displayDate) {
+            if (!displayDate) return null;
+            // Handle DD/MM/YYYY format
+            const parts = displayDate.split('/');
+            if (parts.length !== 3) return null;
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            return `${year}-${month}-${day}`;
+        }
+
         // Archive functions
         function toggleArchiveView() {
             showArchived = !showArchived;
@@ -1269,13 +1287,17 @@
             const dateInput = document.getElementById(`archive-date-${filmId}`);
             const commentaryInput = document.getElementById(`archive-commentary-${filmId}`);
 
+            // Convert date from DD/MM/YYYY to YYYY-MM-DD for storage
+            const displayDate = dateInput.value.trim();
+            const storageDate = displayDate ? formatDateForStorage(displayDate) : null;
+
             try {
                 const res = await fetch('/paradiso/api/films/archive/metadata', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         filmId,
-                        archiveDate: dateInput.value || null,
+                        archiveDate: storageDate,
                         archiveCommentary: commentaryInput.value || null
                     })
                 });
@@ -1349,7 +1371,9 @@
                 return;
             }
 
-            container.innerHTML = displayFilms.map(film => `
+            container.innerHTML = displayFilms.map(film => {
+                const displayDate = formatDateForDisplay(film.archive_date || '');
+                return `
                 <div class="film-item">
                     <button class="film-archive" onclick="toggleArchive(${film.id}, '${film.title.replace(/'/g, "\\'")}')">📦</button>
                     <button class="film-delete" onclick="deleteFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
@@ -1362,7 +1386,12 @@
                             <div class="archive-metadata">
                                 <div class="archive-metadata-row">
                                     <span class="archive-metadata-label">📅 Date:</span>
-                                    <input type="date" id="archive-date-${film.id}" value="${film.archive_date || ''}">
+                                    <input type="text"
+                                           id="archive-date-${film.id}"
+                                           value="${displayDate}"
+                                           placeholder="DD/MM/YYYY"
+                                           pattern="\\d{2}/\\d{2}/\\d{4}"
+                                           title="Format: DD/MM/YYYY">
                                 </div>
                                 <div class="archive-metadata-row">
                                     <span class="archive-metadata-label">💭 Commentary:</span>
@@ -1431,7 +1460,8 @@
                         </a>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         // Initialize on page load
