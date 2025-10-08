@@ -468,12 +468,19 @@
             min-height: 60px;
         }
         .btn-save-archive {
-            background: #4CAF50;
+            background: #757575;
             color: white;
             padding: 6px 12px;
+            transition: background 0.3s ease;
         }
         .btn-save-archive:hover {
-            background: #45a049;
+            background: #616161;
+        }
+        .btn-save-archive.has-changes {
+            background: #FF9800;
+        }
+        .btn-save-archive.has-changes:hover {
+            background: #F57C00;
         }
 
         /* Archive View Toggle */
@@ -1265,9 +1272,29 @@
             }
         }
 
+        function checkArchiveChanges(filmId) {
+            const dateInput = document.getElementById(`archive-date-${filmId}`);
+            const commentaryInput = document.getElementById(`archive-commentary-${filmId}`);
+            const saveBtn = document.getElementById(`save-archive-${filmId}`);
+
+            if (!dateInput || !commentaryInput || !saveBtn) return;
+
+            const originalDate = dateInput.dataset.originalValue || '';
+            const originalCommentary = commentaryInput.dataset.originalValue || '';
+
+            const hasChanges = (dateInput.value !== originalDate) || (commentaryInput.value !== originalCommentary);
+
+            if (hasChanges) {
+                saveBtn.classList.add('has-changes');
+            } else {
+                saveBtn.classList.remove('has-changes');
+            }
+        }
+
         async function saveArchiveMetadata(filmId) {
             const dateInput = document.getElementById(`archive-date-${filmId}`);
             const commentaryInput = document.getElementById(`archive-commentary-${filmId}`);
+            const saveBtn = document.getElementById(`save-archive-${filmId}`);
 
             try {
                 const res = await fetch('/paradiso/api/films/archive/metadata', {
@@ -1282,6 +1309,10 @@
 
                 if (res.ok) {
                     alert('Archive metadata saved!');
+                    // Update original values
+                    dateInput.dataset.originalValue = dateInput.value;
+                    commentaryInput.dataset.originalValue = commentaryInput.value;
+                    saveBtn.classList.remove('has-changes');
                     await loadFilms();
                 } else {
                     const error = await res.json();
@@ -1364,14 +1395,21 @@
                                     <span class="archive-metadata-label">📅 Date:</span>
                                     <input type="date"
                                            id="archive-date-${film.id}"
-                                           value="${film.archive_date || ''}">
+                                           value="${film.archive_date || ''}"
+                                           data-original-value="${film.archive_date || ''}"
+                                           oninput="checkArchiveChanges(${film.id})">
                                 </div>
                                 <div class="archive-metadata-row">
                                     <span class="archive-metadata-label">💭 Commentary:</span>
-                                    <textarea id="archive-commentary-${film.id}" placeholder="Add memories or notes about this film...">${film.archive_commentary || ''}</textarea>
+                                    <textarea id="archive-commentary-${film.id}"
+                                              data-original-value="${film.archive_commentary || ''}"
+                                              oninput="checkArchiveChanges(${film.id})"
+                                              placeholder="Add memories or notes about this film...">${film.archive_commentary || ''}</textarea>
                                 </div>
                                 <div class="archive-metadata-row">
-                                    <button class="btn-save-archive" onclick="saveArchiveMetadata(${film.id})">
+                                    <button id="save-archive-${film.id}"
+                                            class="btn-save-archive"
+                                            onclick="saveArchiveMetadata(${film.id})">
                                         💾 Save
                                     </button>
                                 </div>
