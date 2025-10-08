@@ -177,7 +177,7 @@ def get_films_with_votes_filtered(profile_ids: List[int]) -> List[Dict[str, Any]
 
 
 def get_archived_films_with_votes() -> List[Dict[str, Any]]:
-    """Get archived films with votes"""
+    """Get archived films with votes, sorted by archive_date (if exists) then created_at"""
     with get_db() as conn:
         films = conn.execute("""
             SELECT
@@ -190,13 +190,13 @@ def get_archived_films_with_votes() -> List[Dict[str, Any]]:
             LEFT JOIN votes v ON f.id = v.film_id
             WHERE f.is_archived = 1
             GROUP BY f.id
-            ORDER BY f.created_at DESC
+            ORDER BY COALESCE(f.archive_date, f.created_at) DESC
         """).fetchall()
         return [dict_from_row(f) for f in films]
 
 
 def get_archived_films_with_votes_filtered(profile_ids: List[int]) -> List[Dict[str, Any]]:
-    """Get archived films with votes filtered by specific profile IDs"""
+    """Get archived films with votes filtered by specific profile IDs, sorted by archive_date"""
     with get_db() as conn:
         # Build placeholders for the IN clause
         placeholders = ','.join('?' * len(profile_ids))
@@ -212,7 +212,7 @@ def get_archived_films_with_votes_filtered(profile_ids: List[int]) -> List[Dict[
             LEFT JOIN votes v ON f.id = v.film_id AND v.profile_id IN ({placeholders})
             WHERE f.is_archived = 1
             GROUP BY f.id
-            ORDER BY f.created_at DESC
+            ORDER BY COALESCE(f.archive_date, f.created_at) DESC
         """, profile_ids).fetchall()
         return [dict_from_row(f) for f in films]
 
