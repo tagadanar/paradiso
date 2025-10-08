@@ -1374,38 +1374,38 @@
                                     </button>
                                 </div>
                             </div>
-                        ` : ''}
-
-                        <div class="vote-buttons">
-                            <button class="vote-btn vote-btn-up ${userVotes[film.id] === 1 ? 'active' : ''}"
-                                    onclick="vote(${film.id}, 1)"
-                                    onmouseenter="showVoterTooltip(event, ${film.id})"
-                                    onmouseleave="hideVoterTooltip()">
-                                👍 Upvote (${film.upvotes})
-                            </button>
-                            <button class="vote-btn vote-btn-neutral ${userVotes[film.id] === 2 ? 'active' : ''}"
-                                    onclick="vote(${film.id}, 2)"
-                                    onmouseenter="showVoterTooltip(event, ${film.id})"
-                                    onmouseleave="hideVoterTooltip()">
-                                ➖ Neutral (${film.neutral_votes || 0})
-                            </button>
-                            <button class="vote-btn vote-btn-down ${userVotes[film.id] === -1 ? 'active' : ''}"
-                                    onclick="vote(${film.id}, -1)"
-                                    onmouseenter="showVoterTooltip(event, ${film.id})"
-                                    onmouseleave="hideVoterTooltip()">
-                                👎 Downvote (${film.downvotes})
-                            </button>
-                            <div class="vote-score">
-                                Score: ${film.total_score > 0 ? '+' : ''}${film.total_score}
+                        ` : `
+                            <div class="vote-buttons">
+                                <button class="vote-btn vote-btn-up ${userVotes[film.id] === 1 ? 'active' : ''}"
+                                        onclick="vote(${film.id}, 1)"
+                                        onmouseenter="showVoterTooltip(event, ${film.id})"
+                                        onmouseleave="hideVoterTooltip()">
+                                    👍 Upvote (${film.upvotes})
+                                </button>
+                                <button class="vote-btn vote-btn-neutral ${userVotes[film.id] === 2 ? 'active' : ''}"
+                                        onclick="vote(${film.id}, 2)"
+                                        onmouseenter="showVoterTooltip(event, ${film.id})"
+                                        onmouseleave="hideVoterTooltip()">
+                                    ➖ Neutral (${film.neutral_votes || 0})
+                                </button>
+                                <button class="vote-btn vote-btn-down ${userVotes[film.id] === -1 ? 'active' : ''}"
+                                        onclick="vote(${film.id}, -1)"
+                                        onmouseenter="showVoterTooltip(event, ${film.id})"
+                                        onmouseleave="hideVoterTooltip()">
+                                    👎 Downvote (${film.downvotes})
+                                </button>
+                                <div class="vote-score">
+                                    Score: ${film.total_score > 0 ? '+' : ''}${film.total_score}
+                                </div>
+                                <span class="viewed-icon ${userViewed.includes(film.id) ? 'viewed' : 'not-viewed'}"
+                                      onclick="toggleViewed(${film.id})"
+                                      onmouseenter="showViewerTooltip(event, ${film.id})"
+                                      onmouseleave="hideVoterTooltip()"
+                                      title="${userViewed.includes(film.id) ? 'Mark as not viewed' : 'Mark as viewed'}">
+                                    👁️
+                                </span>
                             </div>
-                            <span class="viewed-icon ${userViewed.includes(film.id) ? 'viewed' : 'not-viewed'}"
-                                  onclick="toggleViewed(${film.id})"
-                                  onmouseenter="showViewerTooltip(event, ${film.id})"
-                                  onmouseleave="hideVoterTooltip()"
-                                  title="${userViewed.includes(film.id) ? 'Mark as not viewed' : 'Mark as viewed'}">
-                                👁️
-                            </span>
-                        </div>
+                        `}
 
                         <button class="info-btn" onclick="toggleInfo(${film.id})">
                             ℹ️ Info
