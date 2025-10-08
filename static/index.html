@@ -324,6 +324,30 @@
         .film-delete:hover {
             background: #d32f2f;
         }
+        .film-archive {
+            position: absolute;
+            top: 12px;
+            right: 52px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #FF9800;
+            color: white;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 18px;
+            line-height: 32px;
+            padding: 0;
+            z-index: 5;
+        }
+        .film-item:hover .film-archive {
+            opacity: 1;
+        }
+        .film-archive:hover {
+            background: #F57C00;
+        }
         .film-poster {
             width: 150px;
             height: 225px;
@@ -406,6 +430,90 @@
             color: #2196F3;
         }
         .trailer-link.show { display: block; }
+
+        /* Archive Metadata */
+        .archive-metadata {
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--info-bg);
+            border-radius: 8px;
+            border-left: 4px solid #FF9800;
+        }
+        .archive-metadata-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .archive-metadata-row:last-child {
+            margin-bottom: 0;
+        }
+        .archive-metadata-label {
+            font-weight: 600;
+            min-width: 100px;
+        }
+        .archive-metadata input[type="date"],
+        .archive-metadata textarea {
+            flex: 1;
+            padding: 6px 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-family: inherit;
+        }
+        .archive-metadata textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .btn-save-archive {
+            background: #4CAF50;
+            color: white;
+            padding: 6px 12px;
+        }
+        .btn-save-archive:hover {
+            background: #45a049;
+        }
+
+        /* Archive View Toggle */
+        .archive-toggle {
+            background: #FF9800;
+            color: white;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .archive-toggle:hover {
+            background: #F57C00;
+        }
+        .archive-toggle.active {
+            background: #4A148C;
+            border-color: #FF9800;
+            box-shadow: 0 0 15px rgba(255, 152, 0, 0.4);
+        }
+
+        /* Viewed Eye Icon */
+        .viewed-icon {
+            display: inline-block;
+            font-size: 24px;
+            cursor: pointer;
+            margin-left: 12px;
+            position: relative;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .viewed-icon:hover {
+            transform: scale(1.15);
+        }
+        .viewed-icon.not-viewed {
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+        .viewed-icon.viewed {
+            opacity: 1;
+        }
 
         /* Theme Toggle */
         .theme-toggle {
@@ -491,6 +599,11 @@
                             <div id="identityCheckboxes" style="padding: 8px; max-height: 300px; overflow-y: auto;"></div>
                         </div>
                     </div>
+                    <div style="margin-left: auto;">
+                        <button id="archiveToggleBtn" class="archive-toggle" onclick="toggleArchiveView()">
+                            📦 Show Archived
+                        </button>
+                    </div>
                 </div>
                 <!-- Search Films -->
                 <div style="margin-top: 6px;">
@@ -560,10 +673,12 @@
         let selectedProfile = null;
         let films = [];
         let userVotes = {};
+        let userViewed = []; // Array of film IDs viewed by selected profile
         let spookyFilter = false;
         let voteFilter = null; // null, 'unvoted', 'upvoted', 'neutral', 'downvoted'
         let filmSearchQuery = '';
         let selectedIdentityIds = []; // Array of profile IDs for identity filter
+        let showArchived = false; // Toggle between regular and archived films
 
         // Handle broken poster images
         function handleImageError(img) {
@@ -618,6 +733,7 @@
             document.getElementById('selectedProfile').innerHTML = `✓ Voting as: ${profile.name}`;
             renderProfiles();
             await loadUserVotes();
+            await loadUserViewed();
             renderFilms();
         }
 
@@ -764,10 +880,19 @@
 
         async function loadFilms() {
             try {
-                let url = '/paradiso/api/films';
-                // Use filtered endpoint if identities are selected
-                if (selectedIdentityIds.length > 0) {
-                    url = `/paradiso/api/films/filtered?profileIds=${selectedIdentityIds.join(',')}`;
+                let url;
+                if (showArchived) {
+                    url = '/paradiso/api/films/archived/list';
+                    // Use filtered endpoint if identities are selected
+                    if (selectedIdentityIds.length > 0) {
+                        url = `/paradiso/api/films/archived/filtered?profileIds=${selectedIdentityIds.join(',')}`;
+                    }
+                } else {
+                    url = '/paradiso/api/films';
+                    // Use filtered endpoint if identities are selected
+                    if (selectedIdentityIds.length > 0) {
+                        url = `/paradiso/api/films/filtered?profileIds=${selectedIdentityIds.join(',')}`;
+                    }
                 }
                 const res = await fetch(url);
                 films = await res.json();
@@ -788,6 +913,20 @@
             } catch (error) {
                 console.error('Failed to load user votes:', error);
                 userVotes = {};
+            }
+        }
+
+        async function loadUserViewed() {
+            if (!selectedProfile) {
+                userViewed = [];
+                return;
+            }
+            try {
+                const res = await fetch(`/paradiso/api/viewed?profileId=${selectedProfile.id}`);
+                userViewed = await res.json();
+            } catch (error) {
+                console.error('Failed to load user viewed:', error);
+                userViewed = [];
             }
         }
 
@@ -818,6 +957,40 @@
             } catch (error) {
                 console.error('Failed to vote:', error);
                 alert('Failed to vote. Please try again.');
+            }
+        }
+
+        async function toggleViewed(filmId) {
+            if (!selectedProfile) {
+                alert('Please select a profile first!');
+                return;
+            }
+
+            try {
+                const res = await fetch('/paradiso/api/viewed/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filmId, profileId: selectedProfile.id })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    // Update local state
+                    if (data.viewed) {
+                        if (!userViewed.includes(filmId)) {
+                            userViewed.push(filmId);
+                        }
+                    } else {
+                        userViewed = userViewed.filter(id => id !== filmId);
+                    }
+                    renderFilms();
+                } else {
+                    const error = await res.json();
+                    alert(error.detail || 'Failed to toggle viewed status');
+                }
+            } catch (error) {
+                console.error('Failed to toggle viewed:', error);
+                alert('Failed to toggle viewed status. Please try again.');
             }
         }
 
@@ -879,6 +1052,54 @@
                     voterTooltip.classList.remove('show');
                 }
             }, 150);
+        }
+
+        async function showViewerTooltip(event, filmId) {
+            clearTimeout(tooltipTimeout);
+
+            if (!voterTooltip) {
+                voterTooltip = document.createElement('div');
+                voterTooltip.className = 'voter-tooltip';
+                document.body.appendChild(voterTooltip);
+            }
+
+            // Position and show tooltip immediately
+            const rect = event.currentTarget.getBoundingClientRect();
+            voterTooltip.style.left = rect.left + 'px';
+            voterTooltip.style.top = (rect.bottom + 8) + 'px';
+            voterTooltip.innerHTML = '<div>Loading...</div>';
+            voterTooltip.classList.add('show');
+
+            try {
+                // Fetch and update content, filtered by selected identities if active
+                let url = `/paradiso/api/films/${filmId}/viewers`;
+                if (selectedIdentityIds.length > 0) {
+                    url += `?profileIds=${selectedIdentityIds.join(',')}`;
+                }
+                const res = await fetch(url);
+                const viewers = await res.json();
+
+                let html = '';
+                if (viewers && viewers.length > 0) {
+                    html = `<div class="voter-section"><strong>👁️ Viewed by:</strong> ${viewers.join(', ')}</div>`;
+                } else {
+                    if (selectedIdentityIds.length > 0) {
+                        html = '<div>Not viewed by selected identities yet</div>';
+                    } else {
+                        html = '<div>Not viewed by anyone yet</div>';
+                    }
+                }
+
+                // Only update if tooltip is still visible
+                if (voterTooltip.classList.contains('show')) {
+                    voterTooltip.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Failed to load viewers:', error);
+                if (voterTooltip.classList.contains('show')) {
+                    voterTooltip.innerHTML = '<div>Failed to load viewers</div>';
+                }
+            }
         }
 
         function toggleInfo(filmId) {
@@ -1005,6 +1226,73 @@
             }
         });
 
+        // Archive functions
+        function toggleArchiveView() {
+            showArchived = !showArchived;
+            const btn = document.getElementById('archiveToggleBtn');
+            if (showArchived) {
+                btn.classList.add('active');
+                btn.textContent = '🎬 Show Regular';
+            } else {
+                btn.classList.remove('active');
+                btn.textContent = '📦 Show Archived';
+            }
+            loadFilms();
+        }
+
+        async function toggleArchive(filmId, filmTitle) {
+            const action = showArchived ? 'unarchive' : 'archive';
+            if (!confirm(`Are you sure you want to ${action} "${filmTitle}"?`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/paradiso/api/films/archive/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filmId })
+                });
+
+                if (res.ok) {
+                    await loadFilms();
+                } else {
+                    const error = await res.json();
+                    alert(error.detail || 'Failed to toggle archive status');
+                }
+            } catch (error) {
+                console.error('Failed to toggle archive:', error);
+                alert('Failed to toggle archive status. Please try again.');
+            }
+        }
+
+        async function saveArchiveMetadata(filmId) {
+            const dateInput = document.getElementById(`archive-date-${filmId}`);
+            const commentaryInput = document.getElementById(`archive-commentary-${filmId}`);
+
+            try {
+                const res = await fetch('/paradiso/api/films/archive/metadata', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filmId,
+                        archiveDate: dateInput.value || null,
+                        archiveCommentary: commentaryInput.value || null
+                    })
+                });
+
+                if (res.ok) {
+                    alert('Archive metadata saved!');
+                    await loadFilms();
+                } else {
+                    const error = await res.json();
+                    alert(error.detail || 'Failed to save archive metadata');
+                }
+            } catch (error) {
+                console.error('Failed to save archive metadata:', error);
+                alert('Failed to save archive metadata. Please try again.');
+            }
+        }
+
         function renderFilms() {
             const container = document.getElementById('filmsList');
 
@@ -1063,11 +1351,30 @@
 
             container.innerHTML = displayFilms.map(film => `
                 <div class="film-item">
+                    <button class="film-archive" onclick="toggleArchive(${film.id}, '${film.title.replace(/'/g, "\\'")}')">📦</button>
                     <button class="film-delete" onclick="deleteFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
                     ${film.poster_url ? `<img class="film-poster" src="${film.poster_url}" alt="${film.title}" onerror="handleImageError(this)">` : '<div class="poster-placeholder">🎬</div>'}
                     <div class="film-details">
                         <div class="film-title">${film.title}</div>
                         <div class="film-year">${film.year}</div>
+
+                        ${showArchived ? `
+                            <div class="archive-metadata">
+                                <div class="archive-metadata-row">
+                                    <span class="archive-metadata-label">📅 Date:</span>
+                                    <input type="date" id="archive-date-${film.id}" value="${film.archive_date || ''}">
+                                </div>
+                                <div class="archive-metadata-row">
+                                    <span class="archive-metadata-label">💭 Commentary:</span>
+                                    <textarea id="archive-commentary-${film.id}" placeholder="Add memories or notes about this film...">${film.archive_commentary || ''}</textarea>
+                                </div>
+                                <div class="archive-metadata-row">
+                                    <button class="btn-save-archive" onclick="saveArchiveMetadata(${film.id})">
+                                        💾 Save
+                                    </button>
+                                </div>
+                            </div>
+                        ` : ''}
 
                         <div class="vote-buttons">
                             <button class="vote-btn vote-btn-up ${userVotes[film.id] === 1 ? 'active' : ''}"
@@ -1091,6 +1398,13 @@
                             <div class="vote-score">
                                 Score: ${film.total_score > 0 ? '+' : ''}${film.total_score}
                             </div>
+                            <span class="viewed-icon ${userViewed.includes(film.id) ? 'viewed' : 'not-viewed'}"
+                                  onclick="toggleViewed(${film.id})"
+                                  onmouseenter="showViewerTooltip(event, ${film.id})"
+                                  onmouseleave="hideVoterTooltip()"
+                                  title="${userViewed.includes(film.id) ? 'Mark as not viewed' : 'Mark as viewed'}">
+                                👁️
+                            </span>
                         </div>
 
                         <button class="info-btn" onclick="toggleInfo(${film.id})">

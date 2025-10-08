@@ -29,6 +29,21 @@ class VoteCreate(BaseModel):
     vote: int  # 1, -1, or 0
 
 
+class ViewedToggle(BaseModel):
+    filmId: int
+    profileId: int
+
+
+class ArchiveToggle(BaseModel):
+    filmId: int
+
+
+class ArchiveMetadataUpdate(BaseModel):
+    filmId: int
+    archiveDate: str | None = None
+    archiveCommentary: str | None = None
+
+
 # API Endpoints
 @app.get("/api/profiles")
 async def get_profiles():
@@ -139,6 +154,87 @@ async def get_user_votes(profileId: int):
 @app.get("/api/films/{film_id}/voters")
 async def get_film_voters(film_id: int):
     return db.get_film_voters(film_id)
+
+
+@app.post("/api/viewed/toggle")
+async def toggle_viewed(viewed: ViewedToggle):
+    profile = db.get_profile_by_id(viewed.profileId)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    film = db.get_film_by_id(viewed.filmId)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    is_viewed = db.toggle_viewed(viewed.filmId, viewed.profileId)
+
+    return {"viewed": is_viewed}
+
+
+@app.get("/api/viewed")
+async def get_user_viewed(profileId: int):
+    return db.get_user_viewed(profileId)
+
+
+@app.get("/api/films/{film_id}/viewers")
+async def get_film_viewers_list(film_id: int, profileIds: str = None):
+    """Get viewers for a film, optionally filtered by profile IDs (comma-separated)"""
+    profile_ids = None
+    if profileIds:
+        try:
+            profile_ids = [int(pid) for pid in profileIds.split(',')]
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid profile IDs")
+
+    return db.get_film_viewers(film_id, profile_ids)
+
+
+@app.get("/api/films/archived/list")
+async def get_archived_films():
+    """Get all archived films"""
+    return db.get_archived_films_with_votes()
+
+
+@app.get("/api/films/archived/filtered")
+async def get_archived_films_filtered(profileIds: str):
+    """Get archived films with votes filtered by specific profile IDs (comma-separated)"""
+    try:
+        profile_ids = [int(pid) for pid in profileIds.split(',')]
+        if not profile_ids:
+            raise HTTPException(status_code=400, detail="No profile IDs provided")
+        return db.get_archived_films_with_votes_filtered(profile_ids)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid profile IDs")
+
+
+@app.post("/api/films/archive/toggle")
+async def toggle_film_archive(archive: ArchiveToggle):
+    """Toggle archive status for a film"""
+    film = db.get_film_by_id(archive.filmId)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    is_archived = db.toggle_archive(archive.filmId)
+    return {"archived": is_archived}
+
+
+@app.post("/api/films/archive/metadata")
+async def update_film_archive_metadata(metadata: ArchiveMetadataUpdate):
+    """Update archive metadata (date and commentary) for a film"""
+    film = db.get_film_by_id(metadata.filmId)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    success = db.update_archive_metadata(
+        metadata.filmId,
+        metadata.archiveDate,
+        metadata.archiveCommentary
+    )
+
+    if success:
+        return {"message": "Archive metadata updated"}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update archive metadata")
 
 
 # Serve static frontend - simple file reading without threading
