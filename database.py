@@ -121,6 +121,27 @@ def get_films_with_votes() -> List[Dict[str, Any]]:
         return [dict_from_row(f) for f in films]
 
 
+def get_films_with_votes_filtered(profile_ids: List[int]) -> List[Dict[str, Any]]:
+    """Get films with votes filtered by specific profile IDs"""
+    with get_db() as conn:
+        # Build placeholders for the IN clause
+        placeholders = ','.join('?' * len(profile_ids))
+
+        films = conn.execute(f"""
+            SELECT
+                f.*,
+                COALESCE(SUM(CASE WHEN v.vote = 1 THEN 1 ELSE 0 END), 0) as upvotes,
+                COALESCE(SUM(CASE WHEN v.vote = -1 THEN 1 ELSE 0 END), 0) as downvotes,
+                COALESCE(SUM(CASE WHEN v.vote = 2 THEN 1 ELSE 0 END), 0) as neutral_votes,
+                COALESCE(SUM(CASE WHEN v.vote IN (1, -1) THEN v.vote ELSE 0 END), 0) as total_score
+            FROM films f
+            LEFT JOIN votes v ON f.id = v.film_id AND v.profile_id IN ({placeholders})
+            GROUP BY f.id
+            ORDER BY total_score DESC, f.created_at DESC
+        """, profile_ids).fetchall()
+        return [dict_from_row(f) for f in films]
+
+
 def get_film_by_imdb_id(imdb_id: str) -> Optional[Dict[str, Any]]:
     with get_db() as conn:
         film = conn.execute("SELECT * FROM films WHERE imdb_id = ?", (imdb_id,)).fetchone()

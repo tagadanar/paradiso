@@ -192,6 +192,55 @@
             box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
         }
 
+        /* Identity Filter Dropdown */
+        .identity-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 4px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px var(--shadow-md);
+            z-index: 1000;
+            min-width: 250px;
+        }
+        .identity-dropdown.show {
+            display: block;
+        }
+        .identity-checkbox-item {
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .identity-checkbox-item:hover {
+            background: var(--bg-quaternary);
+        }
+        .identity-checkbox-item input[type="checkbox"] {
+            cursor: pointer;
+        }
+        .identity-checkbox-item label {
+            cursor: pointer;
+            flex: 1;
+            font-size: 14px;
+        }
+        .btn-identity-select-all,
+        .btn-identity-clear-all {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+        .btn-identity-select-all:hover,
+        .btn-identity-clear-all:hover {
+            background: var(--bg-quaternary);
+        }
+
         /* Cards */
         .card {
             background: var(--bg-secondary);
@@ -430,6 +479,18 @@
                     <button id="downvotedBtn" class="btn-filter" onclick="setVoteFilter('downvoted')">
                         👎 My Downvotes
                     </button>
+                    <div style="position: relative; display: inline-block;">
+                        <button id="identityBtn" class="btn-filter" onclick="toggleIdentityFilter()">
+                            👤 Identities
+                        </button>
+                        <div id="identityDropdown" class="identity-dropdown">
+                            <div style="padding: 8px; border-bottom: 1px solid var(--border-color);">
+                                <button class="btn-identity-select-all" onclick="selectAllIdentities()">Select All</button>
+                                <button class="btn-identity-clear-all" onclick="clearAllIdentities()">Clear All</button>
+                            </div>
+                            <div id="identityCheckboxes" style="padding: 8px; max-height: 300px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
                 </div>
                 <!-- Search Films -->
                 <div style="margin-top: 6px;">
@@ -502,6 +563,7 @@
         let spookyFilter = false;
         let voteFilter = null; // null, 'unvoted', 'upvoted', 'neutral', 'downvoted'
         let filmSearchQuery = '';
+        let selectedIdentityIds = []; // Array of profile IDs for identity filter
 
         // Handle broken poster images
         function handleImageError(img) {
@@ -547,6 +609,7 @@
                     <button class="profile-delete" onclick="deleteProfile(${p.id}, '${p.name.replace(/'/g, "\\'")}')">×</button>
                 </div>
             `).join('');
+            renderIdentityCheckboxes();
         }
 
         async function selectProfile(profile) {
@@ -701,7 +764,12 @@
 
         async function loadFilms() {
             try {
-                const res = await fetch('/paradiso/api/films');
+                let url = '/paradiso/api/films';
+                // Use filtered endpoint if identities are selected
+                if (selectedIdentityIds.length > 0) {
+                    url = `/paradiso/api/films/filtered?profileIds=${selectedIdentityIds.join(',')}`;
+                }
+                const res = await fetch(url);
                 films = await res.json();
                 renderFilms();
             } catch (error) {
@@ -868,6 +936,74 @@
             filmSearchQuery = input.value.toLowerCase().trim();
             renderFilms();
         }
+
+        function toggleIdentityFilter() {
+            const dropdown = document.getElementById('identityDropdown');
+            const btn = document.getElementById('identityBtn');
+            dropdown.classList.toggle('show');
+
+            // Update button active state based on whether any identities are selected
+            if (selectedIdentityIds.length > 0) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+
+        function renderIdentityCheckboxes() {
+            const container = document.getElementById('identityCheckboxes');
+            container.innerHTML = profiles.map(p => `
+                <div class="identity-checkbox-item">
+                    <input type="checkbox"
+                           id="identity-${p.id}"
+                           ${selectedIdentityIds.includes(p.id) ? 'checked' : ''}
+                           onchange="toggleIdentity(${p.id})">
+                    <label for="identity-${p.id}">${p.name}</label>
+                </div>
+            `).join('');
+        }
+
+        function toggleIdentity(profileId) {
+            const index = selectedIdentityIds.indexOf(profileId);
+            if (index > -1) {
+                selectedIdentityIds.splice(index, 1);
+            } else {
+                selectedIdentityIds.push(profileId);
+            }
+
+            // Update button active state
+            const btn = document.getElementById('identityBtn');
+            if (selectedIdentityIds.length > 0) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+
+            loadFilms();
+        }
+
+        function selectAllIdentities() {
+            selectedIdentityIds = profiles.map(p => p.id);
+            renderIdentityCheckboxes();
+            document.getElementById('identityBtn').classList.add('active');
+            loadFilms();
+        }
+
+        function clearAllIdentities() {
+            selectedIdentityIds = [];
+            renderIdentityCheckboxes();
+            document.getElementById('identityBtn').classList.remove('active');
+            loadFilms();
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('identityDropdown');
+            const btn = document.getElementById('identityBtn');
+            if (dropdown && btn && !dropdown.contains(event.target) && !btn.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
 
         function renderFilms() {
             const container = document.getElementById('filmsList');

@@ -67,6 +67,18 @@ async def get_films():
     return db.get_films_with_votes()
 
 
+@app.get("/api/films/filtered")
+async def get_films_filtered(profileIds: str):
+    """Get films with votes filtered by specific profile IDs (comma-separated)"""
+    try:
+        profile_ids = [int(pid) for pid in profileIds.split(',')]
+        if not profile_ids:
+            raise HTTPException(status_code=400, detail="No profile IDs provided")
+        return db.get_films_with_votes_filtered(profile_ids)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid profile IDs")
+
+
 @app.post("/api/films")
 async def add_film(film: FilmAdd):
     existing = db.get_film_by_imdb_id(film.imdbId)
