@@ -191,6 +191,15 @@
             border-color: #FF6B35;
             box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
         }
+        .btn-unspooky {
+            background: #4CAF50;
+        }
+        .btn-unspooky:hover { background: #45a049; }
+        .btn-unspooky.active {
+            background: #1976D2;
+            border-color: #4CAF50;
+            box-shadow: 0 0 15px rgba(76, 175, 80, 0.4);
+        }
 
         /* Identity Filter Dropdown */
         .identity-dropdown {
@@ -582,6 +591,9 @@
                     <button id="spookyBtn" class="btn-filter" onclick="toggleSpookyFilter()">
                         🎃 Spooky
                     </button>
+                    <button id="unspookyBtn" class="btn-filter btn-unspooky" onclick="toggleUnspookyFilter()">
+                        🎅 Unspooky
+                    </button>
                     <button id="unvotedBtn" class="btn-filter" onclick="setVoteFilter('unvoted')">
                         ⚪ Unvoted
                     </button>
@@ -682,6 +694,7 @@
         let userVotes = {};
         let userViewed = []; // Array of film IDs viewed by selected profile
         let spookyFilter = false;
+        let unspookyFilter = false;
         let voteFilter = null; // null, 'unvoted', 'upvoted', 'neutral', 'downvoted'
         let filmSearchQuery = '';
         let selectedIdentityIds = []; // Array of profile IDs for identity filter
@@ -1126,9 +1139,31 @@
 
         function toggleSpookyFilter() {
             spookyFilter = !spookyFilter;
+            // If enabling spooky, disable unspooky
+            if (spookyFilter && unspookyFilter) {
+                unspookyFilter = false;
+                document.getElementById('unspookyBtn').classList.remove('active');
+            }
             console.log('Spooky filter toggled:', spookyFilter);
             const btn = document.getElementById('spookyBtn');
             if (spookyFilter) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+            renderFilms();
+        }
+
+        function toggleUnspookyFilter() {
+            unspookyFilter = !unspookyFilter;
+            // If enabling unspooky, disable spooky
+            if (unspookyFilter && spookyFilter) {
+                spookyFilter = false;
+                document.getElementById('spookyBtn').classList.remove('active');
+            }
+            console.log('Unspooky filter toggled:', unspookyFilter);
+            const btn = document.getElementById('unspookyBtn');
+            if (unspookyFilter) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
@@ -1338,6 +1373,15 @@
                 });
             }
 
+            // Unspooky filter (no horror)
+            if (unspookyFilter) {
+                displayFilms = displayFilms.filter(film => {
+                    if (!film.genre) return true;
+                    const genre = film.genre.toLowerCase();
+                    return !genre.includes('horror');
+                });
+            }
+
             // Vote filter
             if (voteFilter && selectedProfile) {
                 displayFilms = displayFilms.filter(film => {
@@ -1374,6 +1418,7 @@
                 let message = 'No films yet. Add one above!';
                 if (filmSearchQuery) message = `No films found matching "${filmSearchQuery}"`;
                 if (spookyFilter) message = 'No spooky films found!';
+                if (unspookyFilter) message = 'No unspooky films found!';
                 if (voteFilter) message = `No ${voteFilter} films found!`;
                 container.innerHTML = `<p>${message}</p>`;
                 return;
