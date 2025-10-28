@@ -552,6 +552,84 @@
             transform: scale(1.05);
             filter: brightness(1.1);
         }
+
+        /* Archive Date Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.show {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 20px var(--shadow-md);
+        }
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+        .modal-message {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .modal-date {
+            font-weight: 700;
+            color: #2196F3;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .modal-btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .modal-btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        .modal-btn-primary:hover {
+            background: #45a049;
+        }
+        .modal-btn-secondary {
+            background: #2196F3;
+            color: white;
+        }
+        .modal-btn-secondary:hover {
+            background: #0b7dda;
+        }
+        .modal-btn-cancel {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        .modal-btn-cancel:hover {
+            background: var(--bg-quaternary);
+        }
     </style>
 </head>
 <body>
@@ -639,6 +717,28 @@
         <div>
             <h2 style="margin-bottom: 16px;">All Films</h2>
             <div id="filmsList"></div>
+        </div>
+    </div>
+
+    <!-- Archive Date Modal -->
+    <div id="archiveDateModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">Archive Film</div>
+            <div class="modal-message">
+                <p>What date would you like to set for this archive?</p>
+                <p>Today's date: <span class="modal-date" id="modalTodayDate"></span></p>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="archiveDateModalAction('today')">
+                    📅 Use Today's Date
+                </button>
+                <button class="modal-btn modal-btn-secondary" onclick="archiveDateModalAction('empty')">
+                    ⏭️ Leave Empty
+                </button>
+                <button class="modal-btn modal-btn-cancel" onclick="archiveDateModalAction('cancel')">
+                    ✖️ Cancel
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1282,6 +1382,34 @@
             loadFilms();
         }
 
+        // Archive date modal state
+        let archiveModalResolve = null;
+        let archiveModalFilmId = null;
+        let archiveModalFilmTitle = null;
+
+        function showArchiveDateModal(filmId, filmTitle) {
+            return new Promise((resolve) => {
+                archiveModalResolve = resolve;
+                archiveModalFilmId = filmId;
+                archiveModalFilmTitle = filmTitle;
+
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('modalTitle').textContent = `Archive "${filmTitle}"`;
+                document.getElementById('modalTodayDate').textContent = today;
+                document.getElementById('archiveDateModal').classList.add('show');
+            });
+        }
+
+        function archiveDateModalAction(action) {
+            const modal = document.getElementById('archiveDateModal');
+            modal.classList.remove('show');
+
+            if (archiveModalResolve) {
+                archiveModalResolve(action);
+                archiveModalResolve = null;
+            }
+        }
+
         async function toggleArchive(filmId, filmTitle) {
             const action = showArchived ? 'unarchive' : 'archive';
 
@@ -1291,13 +1419,16 @@
                     return;
                 }
             } else {
-                // For archiving, ask about the date
-                const today = new Date().toISOString().split('T')[0];
-                const message = `Archive "${filmTitle}"?\n\nDo you want to set the archive date to today (${today})?\n\nClick OK to use today's date\nClick Cancel to leave the date empty (you can set it later)`;
-                const useTodayDate = confirm(message);
+                // For archiving, show the modal with 3 options
+                const userChoice = await showArchiveDateModal(filmId, filmTitle);
 
+                // If user clicked Cancel, don't archive
+                if (userChoice === 'cancel') {
+                    return;
+                }
+
+                // Archive the film
                 try {
-                    // First, toggle archive status
                     const res = await fetch('/paradiso/api/films/archive/toggle', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1311,7 +1442,8 @@
                     }
 
                     // If user chose to use today's date, save it
-                    if (useTodayDate) {
+                    if (userChoice === 'today') {
+                        const today = new Date().toISOString().split('T')[0];
                         const metadataRes = await fetch('/paradiso/api/films/archive/metadata', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1326,6 +1458,7 @@
                             console.error('Failed to save archive date');
                         }
                     }
+                    // If userChoice === 'empty', we just archive without setting a date
 
                     await loadFilms();
                 } catch (error) {
@@ -1335,6 +1468,7 @@
                 return;
             }
 
+            // For unarchiving (showArchived === true)
             try {
                 const res = await fetch('/paradiso/api/films/archive/toggle', {
                     method: 'POST',
