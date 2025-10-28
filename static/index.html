@@ -1284,7 +1284,54 @@
 
         async function toggleArchive(filmId, filmTitle) {
             const action = showArchived ? 'unarchive' : 'archive';
-            if (!confirm(`Are you sure you want to ${action} "${filmTitle}"?`)) {
+
+            // For unarchiving, just confirm
+            if (showArchived) {
+                if (!confirm(`Are you sure you want to ${action} "${filmTitle}"?`)) {
+                    return;
+                }
+            } else {
+                // For archiving, ask about the date
+                const today = new Date().toISOString().split('T')[0];
+                const message = `Archive "${filmTitle}"?\n\nDo you want to set the archive date to today (${today})?\n\nClick OK to use today's date\nClick Cancel to leave the date empty (you can set it later)`;
+                const useTodayDate = confirm(message);
+
+                try {
+                    // First, toggle archive status
+                    const res = await fetch('/paradiso/api/films/archive/toggle', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ filmId })
+                    });
+
+                    if (!res.ok) {
+                        const error = await res.json();
+                        alert(error.detail || 'Failed to toggle archive status');
+                        return;
+                    }
+
+                    // If user chose to use today's date, save it
+                    if (useTodayDate) {
+                        const metadataRes = await fetch('/paradiso/api/films/archive/metadata', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                filmId,
+                                archiveDate: today,
+                                archiveCommentary: null
+                            })
+                        });
+
+                        if (!metadataRes.ok) {
+                            console.error('Failed to save archive date');
+                        }
+                    }
+
+                    await loadFilms();
+                } catch (error) {
+                    console.error('Failed to toggle archive:', error);
+                    alert('Failed to toggle archive status. Please try again.');
+                }
                 return;
             }
 
