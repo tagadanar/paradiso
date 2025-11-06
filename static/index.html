@@ -810,6 +810,37 @@
         .modal-btn-cancel:hover {
             background: var(--bg-quaternary);
         }
+
+        /* Fullscreen Poster Modal */
+        .poster-fullscreen-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 20000;
+            justify-content: center;
+            align-items: center;
+            cursor: zoom-out;
+        }
+        .poster-fullscreen-overlay.show {
+            display: flex;
+        }
+        .poster-fullscreen-image {
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        }
+        .film-poster {
+            cursor: zoom-in;
+        }
+        .film-poster:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -939,6 +970,11 @@
         </div>
     </div>
 
+    <!-- Fullscreen Poster Modal -->
+    <div id="posterFullscreenModal" class="poster-fullscreen-overlay" onclick="closePosterFullscreen()">
+        <img id="posterFullscreenImage" class="poster-fullscreen-image" src="" alt="Film Poster">
+    </div>
+
     <script>
         // Theme Management
         function initTheme() {
@@ -1019,6 +1055,13 @@
                 const profile = profiles.find(p => p.id === parseInt(savedProfileId));
                 if (profile) selectProfile(profile);
             }
+
+            // Add keyboard listener for ESC key to close fullscreen poster
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closePosterFullscreen();
+                }
+            });
         }
 
         async function loadProfiles() {
@@ -1963,6 +2006,19 @@
             return profile ? profile.name : null;
         }
 
+        function showPosterFullscreen(posterUrl, filmTitle) {
+            const modal = document.getElementById('posterFullscreenModal');
+            const img = document.getElementById('posterFullscreenImage');
+            img.src = posterUrl;
+            img.alt = filmTitle;
+            modal.classList.add('show');
+        }
+
+        function closePosterFullscreen() {
+            const modal = document.getElementById('posterFullscreenModal');
+            modal.classList.remove('show');
+        }
+
         function renderFilms() {
             const container = document.getElementById('filmsList');
 
@@ -2033,7 +2089,7 @@
                 <div class="film-item">
                     <button class="film-archive" onclick="toggleArchive(${film.id}, '${film.title.replace(/'/g, "\\'")}')">📦</button>
                     <button class="film-delete" onclick="deleteFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
-                    ${film.poster_url ? `<img class="film-poster" src="${film.poster_url}" alt="${film.title}" onerror="handleImageError(this)">` : '<div class="poster-placeholder">🎬</div>'}
+                    ${film.poster_url ? `<img class="film-poster" src="${film.poster_url}" alt="${film.title}" onerror="handleImageError(this)" onclick="showPosterFullscreen('${film.poster_url}', '${film.title.replace(/'/g, "\\'")}')">` : '<div class="poster-placeholder">🎬</div>'}
                     <div class="film-details">
                         <div class="film-title">${film.title}</div>
                         <div class="film-year">${film.year}</div>
