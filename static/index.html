@@ -1510,14 +1510,19 @@
                 horrorFilter = 'spooky';
                 btn.textContent = '🎃 Spooky';
                 btn.classList.add('active');
+                btn.classList.remove('btn-unspooky');
+                btn.classList.add('btn-spooky');
             } else if (horrorFilter === 'spooky') {
                 horrorFilter = 'unspooky';
                 btn.textContent = '🎅 Unspooky';
                 btn.classList.add('active');
+                btn.classList.remove('btn-spooky');
+                btn.classList.add('btn-unspooky');
             } else {
                 horrorFilter = 'all';
                 btn.textContent = '🎃🎅 All Films';
                 btn.classList.remove('active');
+                btn.classList.remove('btn-spooky', 'btn-unspooky');
             }
 
             console.log('Horror filter cycled to:', horrorFilter);
