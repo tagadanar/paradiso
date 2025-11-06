@@ -666,11 +666,8 @@
             <div style="padding: 8px 0 12px 0; border-top: 1px solid #e0e0e0; margin-top: 8px;">
                 <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
                     <span style="font-weight: 600; font-size: 14px;">Filters:</span>
-                    <button id="spookyBtn" class="btn-filter" onclick="toggleSpookyFilter()">
-                        🎃 Spooky
-                    </button>
-                    <button id="unspookyBtn" class="btn-filter btn-unspooky" onclick="toggleUnspookyFilter()">
-                        🎅 Unspooky
+                    <button id="horrorFilterBtn" class="btn-filter" onclick="cycleHorrorFilter()">
+                        🎃🎅 All Films
                     </button>
                     <button id="unvotedBtn" class="btn-filter" onclick="setVoteFilter('unvoted')">
                         ⚪ Unvoted
@@ -793,8 +790,7 @@
         let films = [];
         let userVotes = {};
         let userViewed = []; // Array of film IDs viewed by selected profile
-        let spookyFilter = false;
-        let unspookyFilter = false;
+        let horrorFilter = 'all'; // 'all', 'spooky', 'unspooky'
         let voteFilter = null; // null, 'unvoted', 'upvoted', 'neutral', 'downvoted'
         let filmSearchQuery = '';
         let selectedIdentityIds = []; // Array of profile IDs for identity filter
@@ -1237,37 +1233,25 @@
             elem.classList.toggle('show');
         }
 
-        function toggleSpookyFilter() {
-            spookyFilter = !spookyFilter;
-            // If enabling spooky, disable unspooky
-            if (spookyFilter && unspookyFilter) {
-                unspookyFilter = false;
-                document.getElementById('unspookyBtn').classList.remove('active');
-            }
-            console.log('Spooky filter toggled:', spookyFilter);
-            const btn = document.getElementById('spookyBtn');
-            if (spookyFilter) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-            renderFilms();
-        }
+        function cycleHorrorFilter() {
+            const btn = document.getElementById('horrorFilterBtn');
 
-        function toggleUnspookyFilter() {
-            unspookyFilter = !unspookyFilter;
-            // If enabling unspooky, disable spooky
-            if (unspookyFilter && spookyFilter) {
-                spookyFilter = false;
-                document.getElementById('spookyBtn').classList.remove('active');
-            }
-            console.log('Unspooky filter toggled:', unspookyFilter);
-            const btn = document.getElementById('unspookyBtn');
-            if (unspookyFilter) {
+            // Cycle through states: all -> spooky -> unspooky -> all
+            if (horrorFilter === 'all') {
+                horrorFilter = 'spooky';
+                btn.textContent = '🎃 Spooky';
+                btn.classList.add('active');
+            } else if (horrorFilter === 'spooky') {
+                horrorFilter = 'unspooky';
+                btn.textContent = '🎅 Unspooky';
                 btn.classList.add('active');
             } else {
+                horrorFilter = 'all';
+                btn.textContent = '🎃🎅 All Films';
                 btn.classList.remove('active');
             }
+
+            console.log('Horror filter cycled to:', horrorFilter);
             renderFilms();
         }
 
@@ -1545,23 +1529,23 @@
             // Apply filters
             let displayFilms = films;
 
-            // Spooky filter (horror only)
-            if (spookyFilter) {
+            // Horror filter (3 states: all, spooky, unspooky)
+            if (horrorFilter === 'spooky') {
+                // Show only horror films
                 displayFilms = displayFilms.filter(film => {
                     if (!film.genre) return false;
                     const genre = film.genre.toLowerCase();
                     return genre.includes('horror');
                 });
-            }
-
-            // Unspooky filter (no horror)
-            if (unspookyFilter) {
+            } else if (horrorFilter === 'unspooky') {
+                // Show only non-horror films
                 displayFilms = displayFilms.filter(film => {
                     if (!film.genre) return true;
                     const genre = film.genre.toLowerCase();
                     return !genre.includes('horror');
                 });
             }
+            // If horrorFilter === 'all', don't filter anything
 
             // Vote filter
             if (voteFilter && selectedProfile) {
@@ -1598,8 +1582,8 @@
             if (displayFilms.length === 0) {
                 let message = 'No films yet. Add one above!';
                 if (filmSearchQuery) message = `No films found matching "${filmSearchQuery}"`;
-                if (spookyFilter) message = 'No spooky films found!';
-                if (unspookyFilter) message = 'No unspooky films found!';
+                if (horrorFilter === 'spooky') message = 'No spooky films found!';
+                if (horrorFilter === 'unspooky') message = 'No unspooky films found!';
                 if (voteFilter) message = `No ${voteFilter} films found!`;
                 container.innerHTML = `<p>${message}</p>`;
                 return;
