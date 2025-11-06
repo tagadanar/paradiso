@@ -919,6 +919,26 @@
         </div>
     </div>
 
+    <!-- Add Film Teaser Modal -->
+    <div id="addFilmTeaserModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-title" id="teaserModalTitle">Add Film</div>
+            <div class="modal-message">
+                <p>Would you like to add a teaser text for this film?</p>
+                <p style="font-size: 0.9em; color: var(--text-secondary);">If you add a teaser, it will be shown instead of the plot and trailer link.</p>
+                <textarea id="teaserTextInput" placeholder="Enter your teaser text here (optional)..." style="width: 100%; min-height: 100px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-color); font-family: inherit; resize: vertical;"></textarea>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn modal-btn-primary" onclick="addFilmTeaserModalAction('add')">
+                    ➕ Add Film
+                </button>
+                <button class="modal-btn modal-btn-cancel" onclick="addFilmTeaserModalAction('cancel')">
+                    ✖️ Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Theme Management
         function initTheme() {
@@ -1137,7 +1157,7 @@
                     ${movie.Poster !== 'N/A' ? `<img src="${movie.Poster}" alt="${movie.Title}" onerror="handleImageError(this)">` : '<div class="poster-placeholder">🎬</div>'}
                     <h3>${movie.Title}</h3>
                     <p>${movie.Year}</p>
-                    <button class="btn-add" onclick='addFilm("${movie.imdbID}")'>Add Film</button>
+                    <button class="btn-add" onclick='addFilm("${movie.imdbID}", "${movie.Title.replace(/'/g, "&apos;")}")'>Add Film</button>
                 </div>
             `).join('');
 
@@ -1155,12 +1175,27 @@
             document.getElementById('closeSearchBtn').style.display = 'none';
         }
 
-        async function addFilm(imdbId) {
+        async function addFilm(imdbId, filmTitle) {
             try {
+                // Show modal to get teaser text
+                const result = await showAddFilmTeaserModal(filmTitle);
+
+                // If user cancelled, don't add the film
+                if (result.action === 'cancel') {
+                    return;
+                }
+
+                // Prepare the request body
+                const body = {
+                    imdbId: imdbId,
+                    teaserText: result.teaserText || null,
+                    profileId: selectedProfile ? selectedProfile.id : null
+                };
+
                 const res = await fetch('/paradiso/api/films', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ imdbId })
+                    body: JSON.stringify(body)
                 });
 
                 if (res.ok) {
@@ -1585,6 +1620,65 @@
             }
         }
 
+        // Add Film Teaser modal state
+        let addFilmTeaserModalResolve = null;
+
+        function showAddFilmTeaserModal(filmTitle) {
+            return new Promise((resolve) => {
+                addFilmTeaserModalResolve = resolve;
+                document.getElementById('teaserModalTitle').textContent = `Add "${filmTitle}"`;
+                document.getElementById('teaserTextInput').value = '';
+                document.getElementById('addFilmTeaserModal').classList.add('show');
+            });
+        }
+
+        function addFilmTeaserModalAction(action) {
+            const modal = document.getElementById('addFilmTeaserModal');
+            modal.classList.remove('show');
+
+            if (addFilmTeaserModalResolve) {
+                if (action === 'add') {
+                    const teaserText = document.getElementById('teaserTextInput').value.trim();
+                    addFilmTeaserModalResolve({ action, teaserText });
+                } else {
+                    addFilmTeaserModalResolve({ action, teaserText: null });
+                }
+                addFilmTeaserModalResolve = null;
+            }
+        }
+
+        async function showAddTeaserToFilm(filmId, filmTitle) {
+            // Show the modal to get teaser text
+            const result = await showAddFilmTeaserModal(filmTitle);
+
+            // If user cancelled, don't update
+            if (result.action === 'cancel' || !result.teaserText) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/paradiso/api/films/teaser', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filmId: filmId,
+                        teaserText: result.teaserText,
+                        profileId: selectedProfile ? selectedProfile.id : null
+                    })
+                });
+
+                if (res.ok) {
+                    await loadFilms();
+                } else {
+                    const error = await res.json();
+                    alert(error.detail || 'Failed to add teaser');
+                }
+            } catch (error) {
+                console.error('Failed to add teaser:', error);
+                alert('Failed to add teaser. Please try again.');
+            }
+        }
+
         async function toggleArchive(filmId, filmTitle) {
             const action = showArchived ? 'unarchive' : 'archive';
 
@@ -1863,6 +1957,12 @@
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
+        function getProfileNameById(profileId) {
+            if (!profileId) return null;
+            const profile = profiles.find(p => p.id === profileId);
+            return profile ? profile.name : null;
+        }
+
         function renderFilms() {
             const container = document.getElementById('filmsList');
 
@@ -2049,12 +2149,22 @@
                         <button class="info-btn" onclick="toggleInfo(${film.id})">
                             ℹ️ Info
                         </button>
-                        <button class="plot-btn" onclick="togglePlot(${film.id})">
-                            📖 Plot (Spoilers)
-                        </button>
-                        <button class="trailer-btn" onclick="toggleTrailer(${film.id})">
-                            🎬 Trailer
-                        </button>
+
+                        ${film.teaser_text ? `
+                            <button class="plot-btn" onclick="togglePlot(${film.id})" style="background: #9C27B0;">
+                                🎭 Teaser
+                            </button>
+                        ` : `
+                            <button class="plot-btn" onclick="togglePlot(${film.id})">
+                                📖 Plot (Spoilers)
+                            </button>
+                            <button class="trailer-btn" onclick="toggleTrailer(${film.id})">
+                                🎬 Trailer
+                            </button>
+                            <button class="plot-btn" onclick="showAddTeaserToFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}')">
+                                ➕ Add Teaser
+                            </button>
+                        `}
 
                         <div id="info-${film.id}" class="info-content">
                             <p><strong>Genre:</strong> ${film.genre}</p>
@@ -2062,12 +2172,21 @@
                             <p><strong>Actors:</strong> ${film.actors}</p>
                         </div>
 
-                        <div id="plot-${film.id}" class="plot-content">
-                            <p><strong>Plot:</strong> ${film.plot}</p>
-                        </div>
-                        <a id="trailer-${film.id}" class="trailer-link" href="${film.trailer_url}" target="_blank">
-                            Watch Trailer on YouTube →
-                        </a>
+                        ${film.teaser_text ? `
+                            <div id="plot-${film.id}" class="plot-content">
+                                <p style="font-style: italic; line-height: 1.6;">${film.teaser_text}</p>
+                                <p style="margin-top: 12px; font-size: 0.9em; color: var(--text-secondary);">
+                                    <strong>— ${getProfileNameById(film.submitted_by_profile_id) || '???'}</strong>
+                                </p>
+                            </div>
+                        ` : `
+                            <div id="plot-${film.id}" class="plot-content">
+                                <p><strong>Plot:</strong> ${film.plot}</p>
+                            </div>
+                            <a id="trailer-${film.id}" class="trailer-link" href="${film.trailer_url}" target="_blank">
+                                Watch Trailer on YouTube →
+                            </a>
+                        `}
                     </div>
                 </div>
             `).join('');

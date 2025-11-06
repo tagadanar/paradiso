@@ -124,6 +124,13 @@ def init_db():
             conn.execute("ALTER TABLE films ADD COLUMN archive_date TEXT")
         if 'archive_commentary' not in columns:
             conn.execute("ALTER TABLE films ADD COLUMN archive_commentary TEXT")
+
+        # Migration: Add teaser columns if they don't exist
+        if 'teaser_text' not in columns:
+            conn.execute("ALTER TABLE films ADD COLUMN teaser_text TEXT")
+        if 'submitted_by_profile_id' not in columns:
+            conn.execute("ALTER TABLE films ADD COLUMN submitted_by_profile_id INTEGER REFERENCES profiles(id)")
+
         conn.commit()
 
 
@@ -154,12 +161,13 @@ def get_profile_by_name(name: str) -> Optional[Dict[str, Any]]:
 
 # Film operations
 def create_film(imdb_id: str, title: str, year: str, poster_url: Optional[str],
-                genre: str, director: str, actors: str, plot: str, trailer_url: str) -> Dict[str, Any]:
+                genre: str, director: str, actors: str, plot: str, trailer_url: str,
+                teaser_text: Optional[str] = None, submitted_by_profile_id: Optional[int] = None) -> Dict[str, Any]:
     with get_db() as conn:
         cursor = conn.execute(
-            """INSERT INTO films (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url)
+            """INSERT INTO films (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url, teaser_text, submitted_by_profile_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url, teaser_text, submitted_by_profile_id)
         )
         conn.commit()
         film = conn.execute("SELECT * FROM films WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -303,6 +311,21 @@ def get_film_by_id(film_id: int) -> Optional[Dict[str, Any]]:
     with get_db() as conn:
         film = conn.execute("SELECT * FROM films WHERE id = ?", (film_id,)).fetchone()
         return dict_from_row(film) if film else None
+
+
+def update_film_teaser(film_id: int, teaser_text: str, submitted_by_profile_id: Optional[int] = None) -> bool:
+    """Update the teaser text and submitter for a film"""
+    with get_db() as conn:
+        film = conn.execute("SELECT id FROM films WHERE id = ?", (film_id,)).fetchone()
+        if not film:
+            return False
+
+        conn.execute(
+            "UPDATE films SET teaser_text = ?, submitted_by_profile_id = ? WHERE id = ?",
+            (teaser_text, submitted_by_profile_id, film_id)
+        )
+        conn.commit()
+        return True
 
 
 def get_film_voters(film_id: int) -> Dict[str, List[str]]:

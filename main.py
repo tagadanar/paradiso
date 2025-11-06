@@ -21,12 +21,20 @@ class ProfileCreate(BaseModel):
 
 class FilmAdd(BaseModel):
     imdbId: str
+    teaserText: str | None = None
+    profileId: int | None = None
 
 
 class VoteCreate(BaseModel):
     filmId: int
     profileId: int
     vote: int  # 1, -1, or 0
+
+
+class TeaserUpdate(BaseModel):
+    filmId: int
+    teaserText: str
+    profileId: int | None = None
 
 
 class ViewedToggle(BaseModel):
@@ -126,7 +134,9 @@ async def add_film(film: FilmAdd):
         director=movie_details.get("Director", ""),
         actors=movie_details.get("Actors", ""),
         plot=movie_details.get("Plot", ""),
-        trailer_url=trailer_url
+        trailer_url=trailer_url,
+        teaser_text=film.teaserText,
+        submitted_by_profile_id=film.profileId
     )
 
 
@@ -136,6 +146,19 @@ async def delete_film(film_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Film not found")
     return {"message": "Film deleted successfully"}
+
+
+@app.post("/api/films/teaser")
+async def update_teaser(teaser: TeaserUpdate):
+    film = db.get_film_by_id(teaser.filmId)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    success = db.update_film_teaser(teaser.filmId, teaser.teaserText, teaser.profileId)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to update teaser")
+
+    return {"message": "Teaser updated successfully"}
 
 
 @app.post("/api/vote")
