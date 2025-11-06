@@ -1665,15 +1665,12 @@
 
         function checkArchiveChanges(filmId) {
             const dateInput = document.getElementById(`archive-date-${filmId}`);
-            const commentaryInput = document.getElementById(`archive-commentary-${filmId}`);
             const saveBtn = document.getElementById(`save-archive-${filmId}`);
 
-            if (!dateInput || !commentaryInput || !saveBtn) return;
+            if (!dateInput || !saveBtn) return;
 
             const originalDate = dateInput.dataset.originalValue || '';
-            const originalCommentary = commentaryInput.dataset.originalValue || '';
-
-            const hasChanges = (dateInput.value !== originalDate) || (commentaryInput.value !== originalCommentary);
+            const hasChanges = dateInput.value !== originalDate;
 
             if (hasChanges) {
                 saveBtn.classList.add('has-changes');
@@ -1684,7 +1681,6 @@
 
         async function saveArchiveMetadata(filmId) {
             const dateInput = document.getElementById(`archive-date-${filmId}`);
-            const commentaryInput = document.getElementById(`archive-commentary-${filmId}`);
             const saveBtn = document.getElementById(`save-archive-${filmId}`);
 
             try {
@@ -1694,23 +1690,22 @@
                     body: JSON.stringify({
                         filmId,
                         archiveDate: dateInput.value || null,
-                        archiveCommentary: commentaryInput.value || null
+                        archiveCommentary: null
                     })
                 });
 
                 if (res.ok) {
-                    // Update original values
+                    // Update original value
                     dateInput.dataset.originalValue = dateInput.value;
-                    commentaryInput.dataset.originalValue = commentaryInput.value;
                     saveBtn.classList.remove('has-changes');
                     await loadFilms();
                 } else {
                     const error = await res.json();
-                    alert(error.detail || 'Failed to save archive metadata');
+                    alert(error.detail || 'Failed to save archive date');
                 }
             } catch (error) {
-                console.error('Failed to save archive metadata:', error);
-                alert('Failed to save archive metadata. Please try again.');
+                console.error('Failed to save archive date:', error);
+                alert('Failed to save archive date. Please try again.');
             }
         }
 
@@ -1952,15 +1947,6 @@
                                            value="${film.archive_date || ''}"
                                            data-original-value="${film.archive_date || ''}"
                                            oninput="checkArchiveChanges(${film.id})">
-                                </div>
-                                <div class="archive-metadata-row">
-                                    <span class="archive-metadata-label">💭 Commentary:</span>
-                                    <textarea id="archive-commentary-${film.id}"
-                                              data-original-value="${film.archive_commentary || ''}"
-                                              oninput="checkArchiveChanges(${film.id})"
-                                              placeholder="Add memories or notes about this film...">${film.archive_commentary || ''}</textarea>
-                                </div>
-                                <div class="archive-metadata-row">
                                     <button id="save-archive-${film.id}"
                                             class="btn-save-archive"
                                             onclick="saveArchiveMetadata(${film.id})">
