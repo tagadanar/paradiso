@@ -69,6 +69,36 @@ def init_db():
 
             CREATE INDEX IF NOT EXISTS idx_viewed_film_id ON viewed(film_id);
             CREATE INDEX IF NOT EXISTS idx_viewed_profile_id ON viewed(profile_id);
+
+            CREATE TABLE IF NOT EXISTS archive_ratings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                film_id INTEGER NOT NULL,
+                profile_id INTEGER NOT NULL,
+                rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(film_id, profile_id),
+                FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
+                FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_archive_ratings_film_id ON archive_ratings(film_id);
+            CREATE INDEX IF NOT EXISTS idx_archive_ratings_profile_id ON archive_ratings(profile_id);
+
+            CREATE TABLE IF NOT EXISTS archive_comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                film_id INTEGER NOT NULL,
+                profile_id INTEGER NOT NULL,
+                comment_text TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(film_id, profile_id),
+                FOREIGN KEY (film_id) REFERENCES films(id) ON DELETE CASCADE,
+                FOREIGN KEY (profile_id) REFERENCES profiles(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_archive_comments_film_id ON archive_comments(film_id);
+            CREATE INDEX IF NOT EXISTS idx_archive_comments_profile_id ON archive_comments(profile_id);
         """)
         conn.commit()
 
@@ -408,3 +438,107 @@ def update_archive_metadata(film_id: int, archive_date: Optional[str], archive_c
         )
         conn.commit()
         return True
+
+
+# Archive ratings operations
+def create_or_update_rating(film_id: int, profile_id: int, rating: int) -> str:
+    """Create or update a star rating (1-5) for an archived film"""
+    if rating < 1 or rating > 5:
+        raise ValueError("Rating must be between 1 and 5")
+
+    with get_db() as conn:
+        existing = conn.execute(
+            "SELECT * FROM archive_ratings WHERE film_id = ? AND profile_id = ?",
+            (film_id, profile_id)
+        ).fetchone()
+
+        if existing:
+            conn.execute(
+                "UPDATE archive_ratings SET rating = ?, updated_at = CURRENT_TIMESTAMP WHERE film_id = ? AND profile_id = ?",
+                (rating, film_id, profile_id)
+            )
+            conn.commit()
+            return "updated"
+        else:
+            conn.execute(
+                "INSERT INTO archive_ratings (film_id, profile_id, rating) VALUES (?, ?, ?)",
+                (film_id, profile_id, rating)
+            )
+            conn.commit()
+            return "created"
+
+
+def get_film_ratings(film_id: int) -> List[Dict[str, Any]]:
+    """Get all ratings for a film with profile information"""
+    with get_db() as conn:
+        ratings = conn.execute("""
+            SELECT ar.*, p.name as profile_name
+            FROM archive_ratings ar
+            JOIN profiles p ON ar.profile_id = p.id
+            WHERE ar.film_id = ?
+            ORDER BY ar.created_at DESC
+        """, (film_id,)).fetchall()
+        return [dict_from_row(r) for r in ratings]
+
+
+def delete_rating(film_id: int, profile_id: int) -> bool:
+    """Delete a rating"""
+    with get_db() as conn:
+        result = conn.execute(
+            "DELETE FROM archive_ratings WHERE film_id = ? AND profile_id = ?",
+            (film_id, profile_id)
+        )
+        conn.commit()
+        return result.rowcount > 0
+
+
+# Archive comments operations
+def create_or_update_comment(film_id: int, profile_id: int, comment_text: str) -> str:
+    """Create or update a comment for an archived film"""
+    if not comment_text or not comment_text.strip():
+        raise ValueError("Comment text cannot be empty")
+
+    with get_db() as conn:
+        existing = conn.execute(
+            "SELECT * FROM archive_comments WHERE film_id = ? AND profile_id = ?",
+            (film_id, profile_id)
+        ).fetchone()
+
+        if existing:
+            conn.execute(
+                "UPDATE archive_comments SET comment_text = ?, updated_at = CURRENT_TIMESTAMP WHERE film_id = ? AND profile_id = ?",
+                (comment_text.strip(), film_id, profile_id)
+            )
+            conn.commit()
+            return "updated"
+        else:
+            conn.execute(
+                "INSERT INTO archive_comments (film_id, profile_id, comment_text) VALUES (?, ?, ?)",
+                (film_id, profile_id, comment_text.strip())
+            )
+            conn.commit()
+            return "created"
+
+
+def get_film_comments(film_id: int) -> List[Dict[str, Any]]:
+    """Get all comments for a film with profile information"""
+    with get_db() as conn:
+        comments = conn.execute("""
+            SELECT ac.*, p.name as profile_name
+            FROM archive_comments ac
+            JOIN profiles p ON ac.profile_id = p.id
+            WHERE ac.film_id = ?
+            ORDER BY ac.created_at DESC
+        """, (film_id,)).fetchall()
+        return [dict_from_row(c) for c in comments]
+
+
+def delete_comment(film_id: int, profile_id: int) -> bool:
+    """Delete a comment"""
+    with get_db() as conn:
+        result = conn.execute(
+            "DELETE FROM archive_comments WHERE film_id = ? AND profile_id = ?",
+            (film_id, profile_id)
+        )
+        conn.commit()
+        return result.rowcount > 0

@@ -44,6 +44,16 @@ class ArchiveMetadataUpdate(BaseModel):
     archiveCommentary: str | None = None
 
 
+class RatingCreate(BaseModel):
+    profileId: int
+    rating: int  # 1-5
+
+
+class CommentCreate(BaseModel):
+    profileId: int
+    commentText: str
+
+
 # API Endpoints
 @app.get("/api/profiles")
 async def get_profiles():
@@ -235,6 +245,96 @@ async def update_film_archive_metadata(metadata: ArchiveMetadataUpdate):
         return {"message": "Archive metadata updated"}
     else:
         raise HTTPException(status_code=500, detail="Failed to update archive metadata")
+
+
+# Archive ratings endpoints
+@app.post("/api/films/{film_id}/rating")
+async def create_or_update_rating(film_id: int, rating_data: RatingCreate):
+    """Create or update a star rating (1-5) for an archived film"""
+    # Verify film exists and is archived
+    film = db.get_film_by_id(film_id)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    if not film.get('is_archived'):
+        raise HTTPException(status_code=400, detail="Can only rate archived films")
+
+    # Verify profile exists
+    profile = db.get_profile_by_id(rating_data.profileId)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Validate rating
+    if rating_data.rating < 1 or rating_data.rating > 5:
+        raise HTTPException(status_code=400, detail="Rating must be between 1 and 5")
+
+    try:
+        result = db.create_or_update_rating(film_id, rating_data.profileId, rating_data.rating)
+        return {"message": f"Rating {result}", "rating": rating_data.rating}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/films/{film_id}/ratings")
+async def get_film_ratings(film_id: int):
+    """Get all ratings for a film"""
+    film = db.get_film_by_id(film_id)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    return db.get_film_ratings(film_id)
+
+
+@app.delete("/api/films/{film_id}/rating/{profile_id}")
+async def delete_rating(film_id: int, profile_id: int):
+    """Delete a rating"""
+    success = db.delete_rating(film_id, profile_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Rating not found")
+    return {"message": "Rating deleted successfully"}
+
+
+# Archive comments endpoints
+@app.post("/api/films/{film_id}/comment")
+async def create_or_update_comment(film_id: int, comment_data: CommentCreate):
+    """Create or update a comment for an archived film"""
+    # Verify film exists and is archived
+    film = db.get_film_by_id(film_id)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    if not film.get('is_archived'):
+        raise HTTPException(status_code=400, detail="Can only comment on archived films")
+
+    # Verify profile exists
+    profile = db.get_profile_by_id(comment_data.profileId)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    try:
+        result = db.create_or_update_comment(film_id, comment_data.profileId, comment_data.commentText)
+        return {"message": f"Comment {result}"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/films/{film_id}/comments")
+async def get_film_comments(film_id: int):
+    """Get all comments for a film"""
+    film = db.get_film_by_id(film_id)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    return db.get_film_comments(film_id)
+
+
+@app.delete("/api/films/{film_id}/comment/{profile_id}")
+async def delete_comment(film_id: int, profile_id: int):
+    """Delete a comment"""
+    success = db.delete_comment(film_id, profile_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    return {"message": "Comment deleted successfully"}
 
 
 # Serve static frontend - simple file reading without threading
