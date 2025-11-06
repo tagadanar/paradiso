@@ -1,176 +1,140 @@
 # 🎬 Cinema Paradiso - Film Voting Application
 
-A Python/FastAPI application that allows users to search for films, add them to a shared list, and vote on them using anonymous profiles.
+A Python/FastAPI application for collaborative film selection. Search for films, add them to a shared list, and vote using anonymous profiles.
 
-🍕🍹☀️ Pick your favorite films collaboratively with friends!
+🍕🍹☀️ Pick your favorite films with friends!
 
 ## Features
 
-- **Anonymous Profiles**: Create and switch between multiple identities without login
-- **Film Search**: Search for films using the OMDb API (IMDb database)
-- **Add Films**: Add films to the shared voting list
-- **Voting System**: Upvote or downvote films with one vote per profile per film
-- **Spoiler Protection**: Film details (genre, director, actors, plot) are hidden behind a toggle button
-- **Trailer Links**: YouTube trailer search links (revealed on click)
-- **Real-time Updates**: Vote counts update immediately
-- **Profile Persistence**: Selected profile is saved in browser localStorage
+- **Anonymous Profiles**: Create and switch between profiles without login
+- **Film Search**: Search using the OMDb API (IMDb database)
+- **Voting System**: Upvote, downvote, or mark films as neutral
+- **Teaser Text**: Add hints when submitting films without spoiling
+- **Viewed Tracking**: Mark films as watched and see who's viewed them
+- **Archive System**: Archive watched films with ratings (1-5 stars), comments, and viewing dates
+- **Smart Filters**: Genre filter (All/Horror/Non-Horror), vote filters, multi-profile filtering
+- **Spoiler Protection**: Film details hidden behind toggle button
+- **Fullscreen Posters**: Click any poster for fullscreen view
 
 ## Tech Stack
 
-- **Backend**: FastAPI (Python 3.12)
-- **Database**: SQLite3 (native Python support)
-- **Movie API**: OMDb API
+- **Backend**: FastAPI (Python 3.12) + SQLite3
 - **Frontend**: Vanilla HTML/CSS/JavaScript
-- **Server**: Uvicorn (ASGI server)
+- **Movie API**: OMDb API
+- **Server**: Uvicorn
 
-## Setup Instructions
+## Setup
 
-### 1. Get an OMDb API Key
+### 1. Get OMDb API Key
 
 1. Visit [OMDb API](https://www.omdbapi.com/apikey.aspx)
 2. Select "FREE" (1,000 daily requests)
-3. Enter your email
-4. Check your email for the activation link
-5. Click the link to activate your API key
-6. Copy your API key
+3. Activate via email and copy your API key
 
-### 2. Configure Environment Variables
+### 2. Configure Environment
 
-Edit the `.env.local` file in the project root:
+Edit `.env.local`:
 
 ```env
 OMDB_API_KEY=your_actual_api_key_here
 ```
 
-Replace `your_actual_api_key_here` with your actual OMDb API key.
-
-### 3. Install Dependencies
+### 3. Install & Run
 
 ```bash
-pip3 install -r requirements.txt --break-system-packages
-```
-
-Or use a virtual environment:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 4. Run the Application
-
-```bash
+pip3 install -r requirements.txt
 python3 -m uvicorn main:app --reload
 ```
 
-Or run in the background:
-
-```bash
-python3 -m uvicorn main:app --host 0.0.0.0 --port 8000 > server.log 2>&1 &
-```
-
-Open [http://localhost:8000](http://localhost:8000) in your browser.
+Open [http://localhost:8000](http://localhost:8000)
 
 ## Usage
 
-### 1. Create a Profile
-
-- Enter a name in the "New profile name" field at the top
-- Click "Create"
-- Your profile will be selected automatically
-
-### 2. Search for Films
-
-- Use the search box to find films by title
-- Click on a film from the results to add it to the list
-
-### 3. Vote on Films
-
-- Select your profile from the top bar
-- Click 👍 Upvote or 👎 Downvote on any film
-- Click again to remove your vote
-
-### 4. View Film Details
-
-- Click "🔽 Show Details (Spoilers)" to reveal genre, director, actors, and plot
-- Click "🎬 Show Trailer" to get a YouTube search link for the trailer
+1. **Create Profile**: Enter name and click "Create"
+2. **Add Films**: Search films, click to add, optionally add teaser text
+3. **Vote**: Click 👍 Upvote, ➖ Neutral, or 👎 Downvote (hover to see voters)
+4. **View Details**: Click "Show Details" for plot, cast, director
+5. **Mark Viewed**: Use 👁️ button to track watched films
+6. **Filter**: Use 🎃🎅 for horror filter, vote filters (⚪ Unvoted, 👍 Upvotes, etc.)
+7. **Archive**: Click 📦 to archive watched films, add ratings and comments
 
 ## API Endpoints
 
+### Profiles
 - `GET /api/profiles` - Get all profiles
-- `POST /api/profiles` - Create a new profile
-- `GET /api/search?q={query}` - Search films from OMDb
-- `GET /api/films` - Get all films with vote counts
-- `POST /api/films` - Add a film (requires imdbId)
-- `GET /api/vote?profileId={id}` - Get user's votes
-- `POST /api/vote` - Cast/update/remove a vote
+- `POST /api/profiles` - Create profile
+- `DELETE /api/profiles/{profile_id}` - Delete profile
+
+### Films
+- `GET /api/search?q={query}` - Search OMDb
+- `GET /api/films` - Get active films
+- `GET /api/films/filtered?profileIds={ids}` - Get films filtered by profiles
+- `POST /api/films` - Add film
+- `DELETE /api/films/{film_id}` - Delete film
+
+### Voting
+- `POST /api/vote` - Vote (1=upvote, -1=downvote, 2=neutral, 0=remove)
+- `GET /api/vote?profileId={id}` - Get user votes
+- `GET /api/films/{film_id}/voters` - Get voters
+
+### Viewed & Archive
+- `POST /api/viewed/toggle` - Toggle viewed status
+- `GET /api/films/{film_id}/viewers` - Get viewers
+- `GET /api/films/archived/list` - Get archived films
+- `POST /api/films/archive/toggle` - Archive/unarchive film
+- `POST /api/films/archive/metadata` - Update archive metadata
+
+### Ratings & Comments
+- `POST /api/films/{film_id}/rating` - Rate archived film (1-5)
+- `GET /api/films/{film_id}/ratings` - Get ratings
+- `POST /api/films/{film_id}/comment` - Add comment
+- `GET /api/films/{film_id}/comments` - Get comments
 
 ## Project Structure
 
 ```
 paradiso/
-├── main.py                 # FastAPI application & routes
-├── database.py             # SQLite database operations
-├── omdb.py                 # OMDb API client
-├── static/
-│   └── index.html          # Frontend UI
-├── .env.local              # Environment variables
-├── requirements.txt        # Python dependencies
-└── films.db                # SQLite database (auto-created)
+├── main.py                     # FastAPI routes
+├── database.py                 # SQLite operations
+├── omdb.py                     # OMDb API client
+├── static/index.html           # Frontend SPA
+├── .env.local                  # Environment variables
+├── requirements.txt            # Dependencies
+└── films.db                    # SQLite database
 ```
+
+### Database Tables
+
+- **profiles**: User profiles
+- **films**: Film info (title, year, poster, genre, plot, teaser, archive status)
+- **votes**: Film votes (-1, 1, or 2 for neutral)
+- **viewed**: Viewed tracking
+- **archive_ratings**: Star ratings (1-5) for archived films
+- **archive_comments**: Comments for archived films
 
 ## Docker Deployment
 
-### Build and run with Docker
-
 ```bash
 docker build -t paradiso .
-docker run -d \
-  --name paradiso \
-  --restart unless-stopped \
-  -p 8000:8000 \
-  -e OMDB_API_KEY=your_api_key_here \
-  paradiso
+docker run -d --name paradiso -p 8000:8000 -e OMDB_API_KEY=your_key paradiso
 ```
 
-### Using Docker Compose
+Or use Docker Compose:
 
 ```bash
 docker-compose up -d
 ```
 
-**Note:** Make sure to set the `OMDB_API_KEY` environment variable in your docker-compose.yml or pass it via `-e` flag.
-
 ## Development
 
-To run with auto-reload:
-
+Run with auto-reload:
 ```bash
 python3 -m uvicorn main:app --reload
 ```
 
-To access API docs:
+API docs:
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
-
-## Features in Detail
-
-### Voting System
-- **Upvote** (👍): Adds +1 to the film's score
-- **Neutral** (➖): Mark a film as seen without affecting score
-- **Downvote** (👎): Adds -1 to the film's score
-- Hover over vote buttons to see who voted
-
-### Filters
-- **🎃 Spooky Season**: Filter horror/thriller/mystery films
-- **⚪ Unvoted**: Show only films you haven't voted on
-- **👍 My Upvotes**: Show films you upvoted
-- **➖ My Neutral**: Show films you marked neutral
-- **👎 My Downvotes**: Show films you downvoted
-
-### Search
-Real-time search bar to filter films by title, director, actor, genre, or plot keywords.
 
 ## License
 
