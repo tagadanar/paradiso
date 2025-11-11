@@ -933,15 +933,23 @@
         <div class="modal-content">
             <div class="modal-title" id="modalTitle">Archive Film</div>
             <div class="modal-message">
-                <p>What date would you like to set for this archive?</p>
-                <p>Today's date: <span class="modal-date" id="modalTodayDate"></span></p>
+                <p style="margin-bottom: 12px;">Select archive date:</p>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text"
+                           id="archiveModalDateDisplay"
+                           readonly
+                           onclick="openArchiveModalDatePicker()"
+                           placeholder="Click to select date"
+                           style="flex: 1; padding: 10px 12px; border: 2px solid var(--border-color); border-radius: 6px; font-size: 14px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer;">
+                    <input type="date"
+                           id="archiveModalDateHidden"
+                           onchange="syncArchiveModalDate()"
+                           style="position: absolute; opacity: 0; pointer-events: none;">
+                </div>
             </div>
             <div class="modal-buttons">
-                <button class="modal-btn modal-btn-primary" onclick="archiveDateModalAction('today')">
-                    📅 Use Today's Date
-                </button>
-                <button class="modal-btn modal-btn-secondary" onclick="archiveDateModalAction('empty')">
-                    ⏭️ Leave Empty
+                <button class="modal-btn modal-btn-primary" onclick="archiveDateModalAction('validate')">
+                    ✅ Validate
                 </button>
                 <button class="modal-btn modal-btn-cancel" onclick="archiveDateModalAction('cancel')">
                     ✖️ Cancel
@@ -1645,17 +1653,34 @@
         let archiveModalFilmId = null;
         let archiveModalFilmTitle = null;
 
+        function openArchiveModalDatePicker() {
+            const hiddenInput = document.getElementById('archiveModalDateHidden');
+            hiddenInput.showPicker();
+        }
+
+        function syncArchiveModalDate() {
+            const hiddenInput = document.getElementById('archiveModalDateHidden');
+            const visibleInput = document.getElementById('archiveModalDateDisplay');
+
+            if (hiddenInput.value) {
+                visibleInput.value = formatDateToFrench(hiddenInput.value);
+            }
+        }
+
         function showArchiveDateModal(filmId, filmTitle) {
             return new Promise((resolve) => {
                 archiveModalResolve = resolve;
                 archiveModalFilmId = filmId;
                 archiveModalFilmTitle = filmTitle;
 
+                // Set default to today's date
                 const today = new Date();
                 const todayISO = today.toISOString().split('T')[0];
-                const todayFormatted = today.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', year: 'numeric' });
+                const todayFormatted = formatDateToFrench(todayISO);
+
                 document.getElementById('modalTitle').textContent = `Archive "${filmTitle}"`;
-                document.getElementById('modalTodayDate').textContent = todayFormatted;
+                document.getElementById('archiveModalDateHidden').value = todayISO;
+                document.getElementById('archiveModalDateDisplay').value = todayFormatted;
                 document.getElementById('archiveDateModal').classList.add('show');
             });
         }
@@ -1665,7 +1690,12 @@
             modal.classList.remove('show');
 
             if (archiveModalResolve) {
-                archiveModalResolve(action);
+                if (action === 'validate') {
+                    const selectedDate = document.getElementById('archiveModalDateHidden').value;
+                    archiveModalResolve({ action: 'validate', date: selectedDate });
+                } else {
+                    archiveModalResolve({ action: action });
+                }
                 archiveModalResolve = null;
             }
         }
@@ -1738,11 +1768,11 @@
                     return;
                 }
             } else {
-                // For archiving, show the modal with 3 options
-                const userChoice = await showArchiveDateModal(filmId, filmTitle);
+                // For archiving, show the modal to select date
+                const result = await showArchiveDateModal(filmId, filmTitle);
 
                 // If user clicked Cancel, don't archive
-                if (userChoice === 'cancel') {
+                if (result.action === 'cancel') {
                     return;
                 }
 
@@ -1760,15 +1790,14 @@
                         return;
                     }
 
-                    // If user chose to use today's date, save it
-                    if (userChoice === 'today') {
-                        const today = new Date().toISOString().split('T')[0];
+                    // Save the selected date
+                    if (result.action === 'validate' && result.date) {
                         const metadataRes = await fetch('/paradiso/api/films/archive/metadata', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 filmId,
-                                archiveDate: today,
+                                archiveDate: result.date,
                                 archiveCommentary: null
                             })
                         });
@@ -1777,7 +1806,6 @@
                             console.error('Failed to save archive date');
                         }
                     }
-                    // If userChoice === 'empty', we just archive without setting a date
 
                     await loadFilms();
                 } catch (error) {
