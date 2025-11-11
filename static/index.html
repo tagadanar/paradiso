@@ -1807,14 +1807,41 @@
             }
         }
 
+        function formatDateToFrench(isoDateString) {
+            if (!isoDateString) return '';
+            const date = new Date(isoDateString + 'T00:00:00');
+            return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function openDatePicker(filmId) {
+            const hiddenInput = document.getElementById(`archive-date-hidden-${filmId}`);
+            hiddenInput.showPicker();
+        }
+
+        function syncDateFromPicker(filmId) {
+            const hiddenInput = document.getElementById(`archive-date-hidden-${filmId}`);
+            const visibleInput = document.getElementById(`archive-date-${filmId}`);
+
+            if (hiddenInput.value) {
+                visibleInput.value = formatDateToFrench(hiddenInput.value);
+                visibleInput.dataset.isoValue = hiddenInput.value;
+            } else {
+                visibleInput.value = '';
+                visibleInput.dataset.isoValue = '';
+            }
+
+            checkArchiveChanges(filmId);
+        }
+
         function checkArchiveChanges(filmId) {
-            const dateInput = document.getElementById(`archive-date-${filmId}`);
+            const visibleInput = document.getElementById(`archive-date-${filmId}`);
             const saveBtn = document.getElementById(`save-archive-${filmId}`);
 
-            if (!dateInput || !saveBtn) return;
+            if (!visibleInput || !saveBtn) return;
 
-            const originalDate = dateInput.dataset.originalValue || '';
-            const hasChanges = dateInput.value !== originalDate;
+            const originalDate = visibleInput.dataset.originalValue || '';
+            const currentIsoValue = visibleInput.dataset.isoValue || '';
+            const hasChanges = currentIsoValue !== originalDate;
 
             if (hasChanges) {
                 saveBtn.classList.add('has-changes');
@@ -1824,23 +1851,25 @@
         }
 
         async function saveArchiveMetadata(filmId) {
-            const dateInput = document.getElementById(`archive-date-${filmId}`);
+            const visibleInput = document.getElementById(`archive-date-${filmId}`);
             const saveBtn = document.getElementById(`save-archive-${filmId}`);
 
             try {
+                const isoDate = visibleInput.dataset.isoValue || null;
+
                 const res = await fetch('/paradiso/api/films/archive/metadata', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         filmId,
-                        archiveDate: dateInput.value || null,
+                        archiveDate: isoDate,
                         archiveCommentary: null
                     })
                 });
 
                 if (res.ok) {
                     // Update original value
-                    dateInput.dataset.originalValue = dateInput.value;
+                    visibleInput.dataset.originalValue = isoDate;
                     saveBtn.classList.remove('has-changes');
                     await loadFilms();
                 } else {
@@ -2105,11 +2134,20 @@
                             <div class="archive-metadata">
                                 <div class="archive-metadata-row">
                                     <span class="archive-metadata-label">📅 Date:</span>
-                                    <input type="date"
+                                    <input type="text"
                                            id="archive-date-${film.id}"
-                                           value="${film.archive_date || ''}"
+                                           value="${film.archive_date ? formatDateToFrench(film.archive_date) : ''}"
+                                           data-iso-value="${film.archive_date || ''}"
                                            data-original-value="${film.archive_date || ''}"
-                                           oninput="checkArchiveChanges(${film.id})">
+                                           readonly
+                                           onclick="openDatePicker(${film.id})"
+                                           placeholder="Cliquez pour sélectionner"
+                                           style="cursor: pointer;">
+                                    <input type="date"
+                                           id="archive-date-hidden-${film.id}"
+                                           value="${film.archive_date || ''}"
+                                           onchange="syncDateFromPicker(${film.id})"
+                                           style="position: absolute; opacity: 0; pointer-events: none;">
                                     <button id="save-archive-${film.id}"
                                             class="btn-save-archive"
                                             onclick="saveArchiveMetadata(${film.id})">
