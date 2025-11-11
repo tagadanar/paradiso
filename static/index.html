@@ -1651,9 +1651,11 @@
                 archiveModalFilmId = filmId;
                 archiveModalFilmTitle = filmTitle;
 
-                const today = new Date().toISOString().split('T')[0];
+                const today = new Date();
+                const todayISO = today.toISOString().split('T')[0];
+                const todayFormatted = today.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric', year: 'numeric' });
                 document.getElementById('modalTitle').textContent = `Archive "${filmTitle}"`;
-                document.getElementById('modalTodayDate').textContent = today;
+                document.getElementById('modalTodayDate').textContent = todayFormatted;
                 document.getElementById('archiveDateModal').classList.add('show');
             });
         }
