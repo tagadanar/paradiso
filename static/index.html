@@ -2421,6 +2421,12 @@
                                 </button>
                                 <div class="vote-score">
                                     Score: ${film.total_score > 0 ? '+' : ''}${film.total_score}
+                                    ${(() => {
+                                        const totalVoters = film.upvotes + film.neutral_votes + film.downvotes;
+                                        if (totalVoters === 0) return '';
+                                        const ratio = (film.upvotes + film.neutral_votes * 0.5) / totalVoters;
+                                        return ` | Ratio: ${(ratio * 100).toFixed(0)}%`;
+                                    })()}
                                 </div>
                                 <span class="viewed-icon ${userViewed.includes(film.id) ? 'viewed' : 'not-viewed'}"
                                       onclick="toggleViewed(${film.id})"
