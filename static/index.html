@@ -1750,6 +1750,8 @@
             showArchived = !showArchived;
             const btn = document.getElementById('archiveToggleBtn');
             if (showArchived) {
+                // Reset all active filters before entering archived mode
+                resetAllFilters();
                 btn.classList.add('active');
                 btn.textContent = '🎬 Show Regular';
             } else {
@@ -1759,6 +1761,39 @@
             updateSortButton();
             updateFilterButtons();
             loadFilms();
+        }
+
+        function resetAllFilters() {
+            // Reset horror filter
+            if (horrorFilter !== 'all') {
+                horrorFilter = 'all';
+                const horrorBtn = document.getElementById('horrorFilterBtn');
+                if (horrorBtn) {
+                    horrorBtn.textContent = '🎃🎅 All Films';
+                    horrorBtn.classList.remove('active', 'btn-spooky', 'btn-unspooky');
+                }
+            }
+
+            // Reset vote filter
+            if (voteFilter !== null) {
+                voteFilter = null;
+                ['unvotedBtn', 'upvotedBtn', 'neutralBtn', 'downvotedBtn'].forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) btn.classList.remove('active');
+                });
+            }
+
+            // Reset identity filter
+            if (selectedIdentityIds.length > 0) {
+                selectedIdentityIds = [];
+                const identityBtn = document.getElementById('identityBtn');
+                if (identityBtn) identityBtn.classList.remove('active');
+                // Close the dropdown if open
+                const dropdown = document.getElementById('identityDropdown');
+                if (dropdown) dropdown.classList.remove('show');
+                // Update checkboxes to uncheck all
+                renderIdentityCheckboxes();
+            }
         }
 
         // Archive date modal state
