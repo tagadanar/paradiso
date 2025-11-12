@@ -55,6 +55,7 @@
         let showArchived = false; // Toggle between regular and archived films
         let filmRatings = {}; // Map of filmId -> array of rating objects
         let sortMode = 'score'; // 'score' or 'ratio'
+        let archivedSortMode = 'date'; // 'date' or 'rating' - for archived films only
         let filmComments = {}; // Map of filmId -> array of comment objects
 
         // Handle broken poster images
@@ -603,23 +604,26 @@
         }
 
         function toggleSortMode() {
-            if (showArchived) return; // Don't toggle in archived mode
-            sortMode = sortMode === 'score' ? 'ratio' : 'score';
+            if (showArchived) {
+                // In archived mode, toggle between date and rating
+                archivedSortMode = archivedSortMode === 'date' ? 'rating' : 'date';
+            } else {
+                // In regular mode, toggle between score and ratio
+                sortMode = sortMode === 'score' ? 'ratio' : 'score';
+            }
             updateSortButton();
             renderFilms();
         }
 
         function updateSortButton() {
             const btn = document.getElementById('sortToggleBtn');
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+
             if (showArchived) {
-                btn.textContent = '📊 Sort: Date';
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-                btn.style.cursor = 'not-allowed';
+                btn.textContent = archivedSortMode === 'date' ? '📊 Sort: Date' : '📊 Sort: Rating';
             } else {
-                btn.disabled = false;
-                btn.style.opacity = '1';
-                btn.style.cursor = 'pointer';
                 btn.textContent = sortMode === 'score' ? '📊 Sort: Score' : '📊 Sort: Ratio';
             }
         }
@@ -1289,12 +1293,46 @@
                     });
                 }
             } else {
-                // For archived films, sort by archive_date descending (most recent first)
-                displayFilms.sort((a, b) => {
-                    const dateA = a.archive_date ? new Date(a.archive_date) : new Date(0);
-                    const dateB = b.archive_date ? new Date(b.archive_date) : new Date(0);
-                    return dateB - dateA;
-                });
+                // For archived films, sort by date or rating
+                if (archivedSortMode === 'date') {
+                    // Sort by archive_date descending (most recent first)
+                    displayFilms.sort((a, b) => {
+                        const dateA = a.archive_date ? new Date(a.archive_date) : new Date(0);
+                        const dateB = b.archive_date ? new Date(b.archive_date) : new Date(0);
+                        return dateB - dateA;
+                    });
+                } else {
+                    // Sort by rating using the current sortMode (score or ratio)
+                    if (sortMode === 'score') {
+                        displayFilms.sort((a, b) => {
+                            // Sort by total_score descending, then by ratio descending
+                            if (b.total_score !== a.total_score) {
+                                return b.total_score - a.total_score;
+                            }
+                            // Tiebreaker: sort by ratio
+                            const totalVotersA = a.upvotes + a.neutral_votes + a.downvotes;
+                            const totalVotersB = b.upvotes + b.neutral_votes + b.downvotes;
+                            const ratioA = totalVotersA > 0 ? (a.upvotes + a.neutral_votes * 0.5) / totalVotersA : 0;
+                            const ratioB = totalVotersB > 0 ? (b.upvotes + b.neutral_votes * 0.5) / totalVotersB : 0;
+                            return ratioB - ratioA;
+                        });
+                    } else {
+                        // Sort by ratio
+                        displayFilms.sort((a, b) => {
+                            const totalVotersA = a.upvotes + a.neutral_votes + a.downvotes;
+                            const totalVotersB = b.upvotes + b.neutral_votes + b.downvotes;
+                            const ratioA = totalVotersA > 0 ? (a.upvotes + a.neutral_votes * 0.5) / totalVotersA : 0;
+                            const ratioB = totalVotersB > 0 ? (b.upvotes + b.neutral_votes * 0.5) / totalVotersB : 0;
+
+                            // Sort by ratio descending
+                            if (ratioB !== ratioA) {
+                                return ratioB - ratioA;
+                            }
+                            // If ratios are equal, sort by total_score
+                            return b.total_score - a.total_score;
+                        });
+                    }
+                }
             }
 
             if (displayFilms.length === 0) {
