@@ -1259,11 +1259,16 @@
                 // For regular films, sort by score or ratio
                 if (sortMode === 'score') {
                     displayFilms.sort((a, b) => {
-                        // Sort by total_score descending, then by created_at descending
+                        // Sort by total_score descending, then by ratio descending
                         if (b.total_score !== a.total_score) {
                             return b.total_score - a.total_score;
                         }
-                        return new Date(b.created_at) - new Date(a.created_at);
+                        // Tiebreaker: sort by ratio
+                        const totalVotersA = a.upvotes + a.neutral_votes + a.downvotes;
+                        const totalVotersB = b.upvotes + b.neutral_votes + b.downvotes;
+                        const ratioA = totalVotersA > 0 ? (a.upvotes + a.neutral_votes * 0.5) / totalVotersA : 0;
+                        const ratioB = totalVotersB > 0 ? (b.upvotes + b.neutral_votes * 0.5) / totalVotersB : 0;
+                        return ratioB - ratioA;
                     });
                 } else if (sortMode === 'ratio') {
                     displayFilms.sort((a, b) => {
@@ -1279,12 +1284,8 @@
                         if (ratioB !== ratioA) {
                             return ratioB - ratioA;
                         }
-                        // If ratios are equal, sort by total voters
-                        if (totalVotersB !== totalVotersA) {
-                            return totalVotersB - totalVotersA;
-                        }
-                        // If still equal, sort by created_at
-                        return new Date(b.created_at) - new Date(a.created_at);
+                        // If ratios are equal, sort by total_score
+                        return b.total_score - a.total_score;
                     });
                 }
             } else {
