@@ -1,6 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import database as db
 import omdb
@@ -11,9 +10,6 @@ app = FastAPI(
     title="Paradiso - Film Voting App",
     root_path="/paradiso"  # This tells FastAPI it's behind a proxy at /paradiso
 )
-
-# Mount static files directory
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize database
 db.init_db()
@@ -394,3 +390,23 @@ async def serve_index():
         return Response(content=content, media_type="text/html")
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Frontend not found")
+
+
+@app.get("/static/styles.css")
+async def serve_css():
+    try:
+        with open("static/styles.css", "r", encoding="utf-8") as f:
+            content = f.read()
+        return Response(content=content, media_type="text/css")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="CSS file not found")
+
+
+@app.get("/static/app.js")
+async def serve_js():
+    try:
+        with open("static/app.js", "r", encoding="utf-8") as f:
+            content = f.read()
+        return Response(content=content, media_type="application/javascript")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="JS file not found")
