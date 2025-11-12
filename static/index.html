@@ -176,6 +176,20 @@
         .btn-search:hover { background: #0b7dda; }
         .btn-close-search { background: #f44336; color: white; }
         .btn-close-search:hover { background: #d32f2f; }
+        .sort-toggle-btn {
+            background: #9C27B0;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            white-space: nowrap;
+            transition: background-color 0.3s;
+        }
+        .sort-toggle-btn:hover {
+            background: #7B1FA2;
+        }
         .btn-add { background: #4CAF50; color: white; }
         .btn-filter {
             background: #FF6B35;
@@ -942,10 +956,13 @@
                     </div>
                 </div>
                 <!-- Search Films -->
-                <div style="margin-top: 6px;">
+                <div style="margin-top: 6px; display: flex; align-items: center; gap: 12px;">
                     <input type="text" id="filmSearchInput" placeholder="🔍 Search films by title, director, actor, genre..."
-                           style="width: 100%; max-width: 600px;"
+                           style="flex: 1; max-width: 600px;"
                            oninput="filterFilms()">
+                    <button id="sortToggleBtn" class="sort-toggle-btn" onclick="toggleSortMode()" title="Toggle sort mode">
+                        📊 Sort: Score
+                    </button>
                 </div>
             </div>
         </div>
@@ -1071,6 +1088,7 @@
         let selectedIdentityIds = []; // Array of profile IDs for identity filter
         let showArchived = false; // Toggle between regular and archived films
         let filmRatings = {}; // Map of filmId -> array of rating objects
+        let sortMode = 'score'; // 'score' or 'ratio'
         let filmComments = {}; // Map of filmId -> array of comment objects
 
         // Handle broken poster images
@@ -1089,6 +1107,8 @@
         async function init() {
             await loadProfiles();
             await loadFilms();
+            updateSortButton();
+            updateFilterButtons();
             const savedProfileId = localStorage.getItem('selectedProfileId');
             if (savedProfileId && profiles.length > 0) {
                 const profile = profiles.find(p => p.id === parseInt(savedProfileId));
@@ -1559,6 +1579,7 @@
         }
 
         function cycleHorrorFilter() {
+            if (showArchived) return; // Don't filter in archived mode
             const btn = document.getElementById('horrorFilterBtn');
 
             // Cycle through states: all -> spooky -> unspooky -> all
@@ -1586,6 +1607,7 @@
         }
 
         function setVoteFilter(filter) {
+            if (showArchived) return; // Don't filter in archived mode
             // Toggle off if clicking the same filter
             if (voteFilter === filter) {
                 voteFilter = null;
@@ -1614,7 +1636,48 @@
             renderFilms();
         }
 
+        function toggleSortMode() {
+            if (showArchived) return; // Don't toggle in archived mode
+            sortMode = sortMode === 'score' ? 'ratio' : 'score';
+            updateSortButton();
+            renderFilms();
+        }
+
+        function updateSortButton() {
+            const btn = document.getElementById('sortToggleBtn');
+            if (showArchived) {
+                btn.textContent = '📊 Sort: Date';
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.textContent = sortMode === 'score' ? '📊 Sort: Score' : '📊 Sort: Ratio';
+            }
+        }
+
+        function updateFilterButtons() {
+            const filterButtonIds = ['horrorFilterBtn', 'unvotedBtn', 'upvotedBtn', 'neutralBtn', 'downvotedBtn', 'identityBtn'];
+            filterButtonIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    if (showArchived) {
+                        btn.disabled = true;
+                        btn.style.opacity = '0.5';
+                        btn.style.cursor = 'not-allowed';
+                    } else {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.style.cursor = 'pointer';
+                    }
+                }
+            });
+        }
+
         function toggleIdentityFilter() {
+            if (showArchived) return; // Don't filter in archived mode
             const dropdown = document.getElementById('identityDropdown');
             const btn = document.getElementById('identityBtn');
             dropdown.classList.toggle('show');
@@ -1693,6 +1756,8 @@
                 btn.classList.remove('active');
                 btn.textContent = '📦 Show Archived';
             }
+            updateSortButton();
+            updateFilterButtons();
             loadFilms();
         }
 
@@ -2185,6 +2250,47 @@
                         film.plot || ''
                     ].join(' ').toLowerCase();
                     return searchIn.includes(filmSearchQuery);
+                });
+            }
+
+            // Apply sorting
+            if (!showArchived) {
+                // For regular films, sort by score or ratio
+                if (sortMode === 'score') {
+                    displayFilms.sort((a, b) => {
+                        // Sort by total_score descending, then by created_at descending
+                        if (b.total_score !== a.total_score) {
+                            return b.total_score - a.total_score;
+                        }
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    });
+                } else if (sortMode === 'ratio') {
+                    displayFilms.sort((a, b) => {
+                        // Calculate ratio as upvotes / (upvotes + downvotes)
+                        // Handle division by zero: films with no votes get ratio of 0
+                        const totalA = a.upvotes + a.downvotes;
+                        const totalB = b.upvotes + b.downvotes;
+                        const ratioA = totalA > 0 ? a.upvotes / totalA : 0;
+                        const ratioB = totalB > 0 ? b.upvotes / totalB : 0;
+
+                        // Sort by ratio descending
+                        if (ratioB !== ratioA) {
+                            return ratioB - ratioA;
+                        }
+                        // If ratios are equal, sort by total votes (upvotes + downvotes)
+                        if (totalB !== totalA) {
+                            return totalB - totalA;
+                        }
+                        // If still equal, sort by created_at
+                        return new Date(b.created_at) - new Date(a.created_at);
+                    });
+                }
+            } else {
+                // For archived films, sort by archive_date descending (most recent first)
+                displayFilms.sort((a, b) => {
+                    const dateA = a.archive_date ? new Date(a.archive_date) : new Date(0);
+                    const dateB = b.archive_date ? new Date(b.archive_date) : new Date(0);
+                    return dateB - dateA;
                 });
             }
 
