@@ -161,6 +161,19 @@ async def update_teaser(teaser: TeaserUpdate):
     return {"message": "Teaser updated successfully"}
 
 
+@app.delete("/api/films/{film_id}/teaser")
+async def delete_teaser(film_id: int):
+    film = db.get_film_by_id(film_id)
+    if not film:
+        raise HTTPException(status_code=404, detail="Film not found")
+
+    success = db.delete_film_teaser(film_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete teaser")
+
+    return {"message": "Teaser deleted successfully"}
+
+
 @app.post("/api/vote")
 async def create_vote(vote: VoteCreate):
     if vote.vote not in [1, -1, 0, 2]:

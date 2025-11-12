@@ -333,6 +333,24 @@
         .film-delete:hover {
             background: #d32f2f;
         }
+        .teaser-delete {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #f44336;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 28px;
+            padding: 0;
+            margin-left: 8px;
+            vertical-align: middle;
+            transition: background-color 0.2s;
+        }
+        .teaser-delete:hover {
+            background: #d32f2f;
+        }
         .film-archive {
             position: absolute;
             top: 12px;
@@ -1178,6 +1196,23 @@
             } else {
                 const error = await res.json();
                 alert(error.detail || 'Failed to delete film');
+            }
+        }
+
+        async function deleteTeaser(filmId, filmTitle) {
+            if (!confirm(`Are you sure you want to delete the teaser for "${filmTitle}"?`)) {
+                return;
+            }
+
+            const res = await fetch(`/paradiso/api/films/${filmId}/teaser`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                await loadFilms();
+            } else {
+                const error = await res.json();
+                alert(error.detail || 'Failed to delete teaser');
             }
         }
 
@@ -2283,6 +2318,7 @@
                             <button class="plot-btn" onclick="togglePlot(${film.id})" style="background: #9C27B0;">
                                 🎭 Teaser
                             </button>
+                            <button class="teaser-delete" onclick="deleteTeaser(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
                         ` : `
                             <button class="plot-btn" onclick="togglePlot(${film.id})">
                                 📖 Plot (Spoilers)

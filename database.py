@@ -328,6 +328,21 @@ def update_film_teaser(film_id: int, teaser_text: str, submitted_by_profile_id: 
         return True
 
 
+def delete_film_teaser(film_id: int) -> bool:
+    """Delete the teaser text and submitter for a film"""
+    with get_db() as conn:
+        film = conn.execute("SELECT id FROM films WHERE id = ?", (film_id,)).fetchone()
+        if not film:
+            return False
+
+        conn.execute(
+            "UPDATE films SET teaser_text = NULL, submitted_by_profile_id = NULL WHERE id = ?",
+            (film_id,)
+        )
+        conn.commit()
+        return True
+
+
 def get_film_voters(film_id: int) -> Dict[str, List[str]]:
     """Get voters for a specific film, separated by upvotes, downvotes, and neutral"""
     with get_db() as conn:
