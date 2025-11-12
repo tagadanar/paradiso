@@ -1454,7 +1454,7 @@
                             <button class="trailer-btn" onclick="toggleTrailer(${film.id})">
                                 🎬 Trailer
                             </button>
-                            <button class="plot-btn" onclick="showAddTeaserToFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}'))" style="background: #9C27B0;">
+                            <button class="plot-btn" onclick="showAddTeaserToFilm(${film.id}, '${film.title.replace(/'/g, "\\'")}')" style="background: #9C27B0;">
                                 ➕ Add Teaser
                             </button>
                         `}
