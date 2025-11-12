@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import database as db
 import omdb
@@ -10,6 +11,9 @@ app = FastAPI(
     title="Paradiso - Film Voting App",
     root_path="/paradiso"  # This tells FastAPI it's behind a proxy at /paradiso
 )
+
+# Mount static files directory
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize database
 db.init_db()
