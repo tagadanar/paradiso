@@ -131,6 +131,10 @@ def init_db():
         if 'submitted_by_profile_id' not in columns:
             conn.execute("ALTER TABLE films ADD COLUMN submitted_by_profile_id INTEGER REFERENCES profiles(id)")
 
+        # Migration: Add original_title column if it doesn't exist
+        if 'original_title' not in columns:
+            conn.execute("ALTER TABLE films ADD COLUMN original_title TEXT")
+
         conn.commit()
 
 
@@ -162,12 +166,13 @@ def get_profile_by_name(name: str) -> Optional[Dict[str, Any]]:
 # Film operations
 def create_film(imdb_id: str, title: str, year: str, poster_url: Optional[str],
                 genre: str, director: str, actors: str, plot: str, trailer_url: str,
-                teaser_text: Optional[str] = None, submitted_by_profile_id: Optional[int] = None) -> Dict[str, Any]:
+                teaser_text: Optional[str] = None, submitted_by_profile_id: Optional[int] = None,
+                original_title: Optional[str] = None) -> Dict[str, Any]:
     with get_db() as conn:
         cursor = conn.execute(
-            """INSERT INTO films (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url, teaser_text, submitted_by_profile_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url, teaser_text, submitted_by_profile_id)
+            """INSERT INTO films (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url, teaser_text, submitted_by_profile_id, original_title)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (imdb_id, title, year, poster_url, genre, director, actors, plot, trailer_url, teaser_text, submitted_by_profile_id, original_title)
         )
         conn.commit()
         film = conn.execute("SELECT * FROM films WHERE id = ?", (cursor.lastrowid,)).fetchone()

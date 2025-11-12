@@ -123,7 +123,14 @@ async def add_film(film: FilmAdd):
     if movie_details.get("Response") == "False":
         raise HTTPException(status_code=404, detail=movie_details.get("Error", "Movie not found"))
 
-    trailer_url = f"https://www.youtube.com/results?search_query={quote_plus(movie_details['Title'] + ' ' + movie_details['Year'] + ' trailer')}"
+    # Extract original title if different from English title (OMDb may not provide this)
+    original_title = movie_details.get("OriginalTitle")
+    if original_title == movie_details["Title"]:
+        original_title = None  # Don't store if same as title
+
+    # Use original title for trailer search if available, otherwise use English title
+    search_title = original_title if original_title else movie_details['Title']
+    trailer_url = f"https://www.youtube.com/results?search_query={quote_plus(search_title + ' ' + movie_details['Year'] + ' trailer')}"
 
     return db.create_film(
         imdb_id=movie_details["imdbID"],
@@ -136,7 +143,8 @@ async def add_film(film: FilmAdd):
         plot=movie_details.get("Plot", ""),
         trailer_url=trailer_url,
         teaser_text=film.teaserText,
-        submitted_by_profile_id=film.profileId
+        submitted_by_profile_id=film.profileId,
+        original_title=original_title
     )
 
 

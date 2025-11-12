@@ -334,19 +334,25 @@
             background: #d32f2f;
         }
         .teaser-delete {
-            width: 28px;
-            height: 28px;
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             background: #f44336;
             color: white;
             border: none;
             cursor: pointer;
-            font-size: 16px;
-            line-height: 28px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            font-size: 18px;
+            line-height: 32px;
             padding: 0;
-            margin-left: 8px;
-            vertical-align: middle;
-            transition: background-color 0.2s;
+            z-index: 5;
+        }
+        .plot-content:hover .teaser-delete {
+            opacity: 1;
         }
         .teaser-delete:hover {
             background: #d32f2f;
@@ -398,6 +404,12 @@
         }
         .film-details { flex: 1; }
         .film-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .film-original-title {
+            font-size: 16px;
+            font-style: italic;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
         .film-year { color: var(--text-secondary); margin-bottom: 16px; }
         .vote-buttons {
             display: flex;
@@ -443,6 +455,7 @@
             background: var(--info-bg);
             border-radius: 8px;
             display: none;
+            position: relative;
         }
         .info-content.show, .plot-content.show { display: block; }
         .trailer-btn {
@@ -884,7 +897,7 @@
             <div style="padding: 6px 0 4px 0; border-top: 1px solid #e0e0e0; margin-top: 4px;">
                 <div class="form-inline" style="align-items: center;">
                     <span style="font-weight: 600; font-size: 14px; margin-right: 10px;">Add Film:</span>
-                    <input type="text" id="searchQuery" placeholder="Search for a film..." style="flex: 1; max-width: 400px;">
+                    <input type="text" id="searchQuery" placeholder="Search for a film..." style="flex: 1; max-width: 400px;" onkeypress="if(event.key==='Enter') searchFilms()">
                     <button class="btn-search" onclick="searchFilms()">Search</button>
                     <button id="closeSearchBtn" class="btn-close-search" onclick="closeSearch()" style="display: none;">✕</button>
                 </div>
@@ -2164,6 +2177,7 @@
                 displayFilms = displayFilms.filter(film => {
                     const searchIn = [
                         film.title || '',
+                        film.original_title || '',
                         film.director || '',
                         film.actors || '',
                         film.genre || '',
@@ -2191,6 +2205,7 @@
                     ${film.poster_url ? `<img class="film-poster" src="${film.poster_url}" alt="${film.title}" onerror="handleImageError(this)" onclick="showPosterFullscreen('${film.poster_url}', '${film.title.replace(/'/g, "\\'")}')">` : '<div class="poster-placeholder">🎬</div>'}
                     <div class="film-details">
                         <div class="film-title">${film.title}</div>
+                        ${film.original_title ? `<div class="film-original-title">${film.original_title}</div>` : ''}
                         <div class="film-year">${film.year}</div>
 
                         ${showArchived ? `
@@ -2318,7 +2333,6 @@
                             <button class="plot-btn" onclick="togglePlot(${film.id})" style="background: #9C27B0;">
                                 🎭 Teaser
                             </button>
-                            <button class="teaser-delete" onclick="deleteTeaser(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
                         ` : `
                             <button class="plot-btn" onclick="togglePlot(${film.id})">
                                 📖 Plot (Spoilers)
@@ -2339,6 +2353,7 @@
 
                         ${film.teaser_text ? `
                             <div id="plot-${film.id}" class="plot-content">
+                                <button class="teaser-delete" onclick="deleteTeaser(${film.id}, '${film.title.replace(/'/g, "\\'")}')">×</button>
                                 <p style="font-style: italic; line-height: 1.6;">${film.teaser_text}</p>
                                 <p style="margin-top: 12px; font-size: 0.9em; color: var(--text-secondary);">
                                     <strong>— ${getProfileNameById(film.submitted_by_profile_id) || '???'}</strong>
