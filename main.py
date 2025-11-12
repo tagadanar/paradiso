@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 import database as db
 import omdb
+import tmdb
 from urllib.parse import quote_plus
 import os
 
@@ -123,10 +124,13 @@ async def add_film(film: FilmAdd):
     if movie_details.get("Response") == "False":
         raise HTTPException(status_code=404, detail=movie_details.get("Error", "Movie not found"))
 
-    # Extract original title if different from English title (OMDb may not provide this)
-    original_title = movie_details.get("OriginalTitle")
-    if original_title == movie_details["Title"]:
-        original_title = None  # Don't store if same as title
+    # Get original title from TMDb (OMDb doesn't provide this)
+    original_title = None
+    tmdb_data = await tmdb.get_movie_by_imdb_id(film.imdbId)
+    if tmdb_data and tmdb_data.get("original_title"):
+        # Only store if different from English title
+        if tmdb_data["original_title"] != movie_details["Title"]:
+            original_title = tmdb_data["original_title"]
 
     # Use original title for trailer search if available, otherwise use English title
     search_title = original_title if original_title else movie_details['Title']
@@ -379,6 +383,73 @@ async def delete_comment(film_id: int, profile_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Comment not found")
     return {"message": "Comment deleted successfully"}
+
+
+# Backfill endpoint for original titles
+@app.post("/api/admin/backfill-original-titles")
+async def backfill_original_titles():
+    """Backfill original titles for all existing films using TMDb API"""
+    films = db.get_all_films()
+    updated = 0
+    failed = 0
+    skipped = 0
+
+    results = []
+
+    for film in films:
+        film_id = film['id']
+        imdb_id = film['imdb_id']
+        current_title = film['title']
+        current_original = film.get('original_title')
+
+        # Skip if already has original title
+        if current_original:
+            skipped += 1
+            continue
+
+        # Fetch from TMDb
+        try:
+            tmdb_data = await tmdb.get_movie_by_imdb_id(imdb_id)
+            if tmdb_data and tmdb_data.get("original_title"):
+                original_title = tmdb_data["original_title"]
+
+                # Only update if different from current title
+                if original_title != current_title:
+                    success = db.update_film_original_title(film_id, original_title)
+                    if success:
+                        updated += 1
+                        results.append({
+                            "film_id": film_id,
+                            "title": current_title,
+                            "original_title": original_title,
+                            "status": "updated"
+                        })
+                    else:
+                        failed += 1
+                        results.append({
+                            "film_id": film_id,
+                            "title": current_title,
+                            "status": "failed_to_update"
+                        })
+                else:
+                    skipped += 1
+            else:
+                skipped += 1
+        except Exception as e:
+            failed += 1
+            results.append({
+                "film_id": film_id,
+                "title": current_title,
+                "status": f"error: {str(e)}"
+            })
+
+    return {
+        "total_films": len(films),
+        "updated": updated,
+        "failed": failed,
+        "skipped": skipped,
+        "results": results
+    }
 
 
 # Serve static frontend - simple file reading without threading

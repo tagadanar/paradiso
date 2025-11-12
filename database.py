@@ -585,3 +585,25 @@ def delete_comment(film_id: int, profile_id: int) -> bool:
         )
         conn.commit()
         return result.rowcount > 0
+
+
+def update_film_original_title(film_id: int, original_title: Optional[str]) -> bool:
+    """Update the original_title for a film"""
+    with get_db() as conn:
+        film = conn.execute("SELECT id FROM films WHERE id = ?", (film_id,)).fetchone()
+        if not film:
+            return False
+
+        conn.execute(
+            "UPDATE films SET original_title = ? WHERE id = ?",
+            (original_title, film_id)
+        )
+        conn.commit()
+        return True
+
+
+def get_all_films() -> List[Dict[str, Any]]:
+    """Get all films (both archived and not archived) for backfill purposes"""
+    with get_db() as conn:
+        films = conn.execute("SELECT * FROM films ORDER BY created_at DESC").fetchall()
+        return [dict_from_row(f) for f in films]
