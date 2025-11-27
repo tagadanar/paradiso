@@ -184,6 +184,20 @@
             background: #7B1FA2;
         }
         .btn-add { background: #4CAF50; color: white; }
+        .load-more-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            padding: 15px 0;
+        }
+        .btn-load-more {
+            background: #2196F3;
+            color: white;
+            padding: 10px 24px;
+            font-size: 14px;
+            border-radius: 8px;
+        }
+        .btn-load-more:hover { background: #0b7dda; }
         .btn-filter {
             background: #FF6B35;
             color: white;

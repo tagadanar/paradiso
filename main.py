@@ -87,13 +87,17 @@ async def delete_profile(profile_id: int):
 
 
 @app.get("/api/search")
-async def search_films(q: str):
-    results = await omdb.search_movies(q)
+async def search_films(q: str, page: int = 1):
+    results = await omdb.search_movies(q, page)
 
     if results.get("Response") == "False":
-        return {"results": [], "error": results.get("Error")}
+        return {"results": [], "error": results.get("Error"), "totalResults": 0}
 
-    return {"results": results.get("Search", [])}
+    return {
+        "results": results.get("Search", []),
+        "totalResults": int(results.get("totalResults", 0)),
+        "page": page
+    }
 
 
 @app.get("/api/films")

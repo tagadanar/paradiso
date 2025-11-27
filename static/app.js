@@ -48,6 +48,12 @@
         let films = [];
         let userVotes = {};
         let userViewed = []; // Array of film IDs viewed by selected profile
+
+        // Search pagination state
+        let currentSearchQuery = '';
+        let currentSearchPage = 1;
+        let currentSearchTotalResults = 0;
+        let currentSearchResults = [];
         let horrorFilter = 'all'; // 'all', 'spooky', 'unspooky'
         let voteFilter = null; // null, 'unvoted', 'upvoted', 'neutral', 'downvoted'
         let filmSearchQuery = '';
@@ -216,27 +222,52 @@
             }
         }
 
-        async function searchFilms() {
+        async function searchFilms(loadMore = false) {
             const query = document.getElementById('searchQuery').value.trim();
             if (!query) return;
 
+            // If it's a new search, reset pagination
+            if (!loadMore || query !== currentSearchQuery) {
+                currentSearchQuery = query;
+                currentSearchPage = 1;
+                currentSearchResults = [];
+            }
+
             try {
-                const res = await fetch(`/paradiso/api/search?q=${encodeURIComponent(query)}`);
+                const res = await fetch(`/paradiso/api/search?q=${encodeURIComponent(currentSearchQuery)}&page=${currentSearchPage}`);
                 const data = await res.json();
-                renderSearchResults(data.results || []);
 
                 if (data.error) {
                     alert(`Search error: ${data.error}`);
+                    return;
                 }
+
+                currentSearchTotalResults = data.totalResults || 0;
+
+                if (loadMore) {
+                    currentSearchResults = [...currentSearchResults, ...(data.results || [])];
+                } else {
+                    currentSearchResults = data.results || [];
+                }
+
+                renderSearchResults(currentSearchResults);
             } catch (error) {
                 console.error('Failed to search films:', error);
                 alert('Failed to search films. Please try again.');
             }
         }
 
+        async function loadMoreSearchResults() {
+            currentSearchPage++;
+            await searchFilms(true);
+        }
+
         function renderSearchResults(results) {
             const container = document.getElementById('searchResults');
             const closeBtn = document.getElementById('closeSearchBtn');
+
+            // Check if there are more results to load (OMDb returns 10 per page)
+            const hasMoreResults = results.length < currentSearchTotalResults;
 
             container.innerHTML = results.map(movie => `
                 <div class="movie-card">
@@ -245,7 +276,13 @@
                     <p>${movie.Year}</p>
                     <button class="btn-add" onclick='addFilm("${movie.imdbID}", "${movie.Title.replace(/'/g, "&apos;")}")'>Add Film</button>
                 </div>
-            `).join('');
+            `).join('') + (hasMoreResults ? `
+                <div class="load-more-container">
+                    <button class="btn-load-more" onclick="loadMoreSearchResults()">
+                        Load More (${results.length} of ${currentSearchTotalResults})
+                    </button>
+                </div>
+            ` : '');
 
             // Show close button if there are results
             if (results.length > 0) {
@@ -259,6 +296,11 @@
             document.getElementById('searchResults').innerHTML = '';
             document.getElementById('searchQuery').value = '';
             document.getElementById('closeSearchBtn').style.display = 'none';
+            // Reset search pagination state
+            currentSearchQuery = '';
+            currentSearchPage = 1;
+            currentSearchTotalResults = 0;
+            currentSearchResults = [];
         }
 
         async function addFilm(imdbId, filmTitle) {

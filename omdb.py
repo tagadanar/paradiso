@@ -12,11 +12,11 @@ OMDB_BASE_URL = "https://www.omdbapi.com/"
 session = requests.Session()
 
 
-async def search_movies(query: str):
+async def search_movies(query: str, page: int = 1):
     # Use requests in blocking mode - FastAPI will handle this fine
     response = session.get(
         OMDB_BASE_URL,
-        params={"apikey": OMDB_API_KEY, "s": query, "type": "movie"},
+        params={"apikey": OMDB_API_KEY, "s": query, "type": "movie", "page": page},
         timeout=10
     )
     return response.json()
